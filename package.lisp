@@ -5,4 +5,4 @@
   (:export :load-model :vertex :mesh :make-mesh :model :make-model))
 
 (defpackage #:lark
-  (:use #:cl))
+  (:use #:cl #:temporal-functions))

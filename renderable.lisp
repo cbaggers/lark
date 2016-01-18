@@ -4,6 +4,6 @@
     ((mesh (error "mesh must be supplied on construction of mesh-renderable")
 	   :type yaksha:mesh))
   ;; proper rendering soon :)
-  (format t "~%render mesh ~s" mesh-renderable-mesh))
+  (cepl:cls))
 
 (initialize-mesh-renderable-system)
