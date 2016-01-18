@@ -13,12 +13,12 @@
 	    (add-to-release-pool
 	     (%prim->gpu-data
 	      (dendrite.primitives:box-data
-	       :width size :height size :depth size))))
-      (add-transform
-       (add-mesh-renderable
-	(hasty:entity!)
-	:mesh (yaksha:make-mesh :stream cached-gpu-data
-				:textures nil))))))
+	       :width size :height size :depth size)))))
+    (add-transform
+     (add-mesh-renderable
+      (hasty:entity!)
+      :mesh (yaksha:make-mesh :stream cached-gpu-data
+			      :textures nil)))))
 
 (let (cached-gpu-data)
   (defun make-sphere (&key (radius 10.0) physics)
@@ -27,12 +27,12 @@
       (setf cached-gpu-data
 	    (add-to-release-pool
 	     (%prim->gpu-data
-	      (dendrite.primitives:sphere-data :radius radius))))
-      (add-transform
-       (add-mesh-renderable
-	(hasty:entity!)
-	:mesh (yaksha:make-mesh :stream cached-gpu-data
-				:textures nil))))))
+	      (dendrite.primitives:sphere-data :radius radius)))))
+    (add-transform
+     (add-mesh-renderable
+      (hasty:entity!)
+      :mesh (yaksha:make-mesh :stream cached-gpu-data
+			      :textures nil)))))
 
 
 

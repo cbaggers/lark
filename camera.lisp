@@ -3,6 +3,8 @@
 (hasty:def-component eye () ()
   nil)
 
+(initialize-eye-system)
+
 (defun make-camera ()
   (let ((c
 	 (hasty:register-entity

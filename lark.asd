@@ -12,10 +12,17 @@
   :components ((:file "package")
 
 	       ;; mesh and models
-	       (:file "assimp-helpers")
                (:file "yaksha/mesh")
 	       (:file "yaksha/model")
 
 	       ;; lark core api
+	       (:file "pools")
 	       (:file "engine")
+
+	       ;; components
+	       (:file "camera")
+	       (:file "transform")
+	       (:file "renderable")
+
+	       ;; api
 	       (:file "api")))
