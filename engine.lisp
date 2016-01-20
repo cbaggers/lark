@@ -14,6 +14,9 @@
 (defparameter *step-func-name* '%%step)
 (defparameter *running-var-name* '%%running)
 
+;; {TODO} put this in main loop eventually
+(defvar *render-pass* nil)
+
 (defmacro defgame-loop (name (&key startup-function) &body body)
   (let ((run-symb (cepl-utils:symb :run-loop))
         (stop-symb (cepl-utils:symb :stop-loop)))
@@ -53,7 +56,7 @@
 		      ;; run all entity component system code (except rendering)
 		      (hasty:step-hasty)
 		      ;; run render pass
-		      ;; (hasty:run-pass *render-pass*)
+		      (hasty:run-pass *render-pass*)
 		      )
 		   (print "-shutting down-")))
 	     (format t "Lark: Cannot run loop as engine has not been started."))

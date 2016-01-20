@@ -20,8 +20,8 @@
 	       (:file "engine")
 
 	       ;; components
-	       (:file "camera")
 	       (:file "transform")
+	       (:file "camera")
 	       (:file "renderable")
 
 	       ;; api

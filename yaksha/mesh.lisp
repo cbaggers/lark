@@ -53,7 +53,7 @@
   (let ((materials (assimp:materials a-scene))
 	(texture-cache (make-hash-table :test #'equal)))
     (map 'list λ(assimp-mesh->mesh _ materials model-filename texture-cache)
-	 (assimp:meshes suit))))
+	 (assimp:meshes a-scene))))
 
 (defun assimp-mesh->mesh (a-mesh materials model-filename texture-cache)
   (let* ((vertex-gpu-array (a-mesh->vertex-gpu-array a-mesh))
@@ -94,7 +94,6 @@
 		      :jungl-texture (devil-helper:load-image-to-texture filepath)
 		      :type (a-tex-type-name->lark-tex-type-name a-tex-type))))
 	    (setf (gethash tex-filename texture-cache) tex)
-	    (cepl::peek texture-cache)
 	    tex)))))
 
 (defun a-tex-type-name->lark-tex-type-name (name)
@@ -129,5 +128,5 @@
   (let ((len (elt (assimp:components-per-texture-coord a-mesh) 0)))
     (when (not (= 2 len))
       (error "can only support 2 component uvs right now"))
-    ;; elt 0 as only pull set of uvs right now ----------------^-----v
+    ;; elt 0 as only pull set of uvs right now ----------------^-v
     (map 'list λ(v:s~ _ :xy) (elt (assimp:texture-coords a-mesh) 0))))
