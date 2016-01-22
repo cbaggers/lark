@@ -4,10 +4,11 @@
     ((mesh (error "mesh must be supplied on construction of mesh-renderable")
 	   :type yaksha:mesh))
   ;; proper rendering soon :)
-  (cepl:cls))
+  (with-transform (model->world) entity
+    (let-model-space ((:to *world-space* model->world))
+      (map-g #'first-render (mesh-stream mesh)))))
 
-(initialize-mesh-renderable-system)
-
+;; so the main loop can (hasty:run-pass *render-pass*)
 (setf *render-pass* (hasty:get-system 'mesh-renderable))
 
 
@@ -22,4 +23,4 @@
   color)
 
 (defpipeline first-render ()
-    (g-> #'va6 #'fa5))
+    (g-> #'first-vert #'first-frag))
