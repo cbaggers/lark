@@ -1,4 +1,3 @@
 (in-package #:lark)
 
-(defgame-loop test-game ()
-  nil)
+(defgame-loop test-game ())

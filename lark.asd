@@ -6,6 +6,7 @@
   :license "GPLv3"
   :serial t
   :depends-on (#:cepl-default #:classimp #:fn #:named-readtables
+			      #:cepl.camera
 			      #:cepl-image-helper #:cl-fad
 			      #:temporal-functions #:hasty
 			      #:dendrite #:disposable)

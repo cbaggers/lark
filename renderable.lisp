@@ -1,22 +1,11 @@
 (in-package #:lark)
 
-(hasty:def-component mesh-renderable (:reactive transform)
-    ((mesh (error "mesh must be supplied on construction of mesh-renderable")
-	   :type yaksha:mesh))
-  ;; proper rendering soon :)
-  (with-transform (model->world) entity
-    (let-model-space ((:to *world-space* model->world))
-      (map-g #'first-render (mesh-stream mesh)))))
-
-;; so the main loop can (hasty:run-pass *render-pass*)
-(setf *render-pass* (hasty:get-system 'mesh-renderable))
-
-
 ;;----------------------------------------------------------------------
+;; Shader pipeline
 
-(defun-g first-vert ((v vertex))
+(defun-g first-vert ((v vertex) &uniform (model-space space-g))
   (in *clip-space*
-    (values (in *model-space* (p! (pos v) 1.0))
+    (values (in model-space (p! (pos v) 1.0))
 	    (v! 1 0 0 0))))
 
 (defun-g first-frag ((color :vec4))
@@ -24,3 +13,24 @@
 
 (defpipeline first-render ()
     (g-> #'first-vert #'first-frag))
+
+;;----------------------------------------------------------------------
+;; system
+
+(hasty:def-component renderable (:reactive transform)
+    ((model (error "model must be supplied on construction of mesh-renderable")
+	    :type yaksha:model)
+     (space (space! *world-space*) :type space))
+  ;;
+  ;; populate space from transform
+  (with-transform (position rotation) entity
+    (update
+     :model->world (m4:m* (m4:translation position)
+			  (q:to-matrix4 (q:normalize rotation)))))
+
+  ;; draw some stuff
+  (cepl.camera:using-camera *current-camera*
+    (map-g #'first-render (mesh-stream mesh) :model-space space)))
+
+;; so the main loop can (hasty:run-pass *render-pass*)
+(setf *render-pass* (hasty:get-system 'renderable))
