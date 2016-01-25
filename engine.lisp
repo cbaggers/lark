@@ -57,9 +57,10 @@
 			   ;; run all entity component system code (except rendering)
 			   (hasty:step-hasty)
 			   ;; run render pass
+			   (gl:clear :color-buffer-bit :depth-buffer-bit)
 			   (hasty:run-pass *render-pass*)
-			   )
-		     (setf ,*running-var-name* nil))
-		   (print "-shutting down-")))
+			   (update-display))
+		     (setf ,*running-var-name* nil)
+		     (print "-shutting down-"))))
 	     (format t "Lark: Cannot run loop as engine has not been started."))
 	 ',name))))

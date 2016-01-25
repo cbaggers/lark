@@ -14,11 +14,12 @@
 	     (%prim->gpu-data
 	      (dendrite.primitives:box-data
 	       :width size :height size :depth size)))))
-    (add-transform
-     (add-mesh-renderable
-      (hasty:entity!)
-      :mesh (yaksha:make-mesh :stream cached-gpu-data
-			      :textures nil)))))
+    (hasty:register-entity
+     (add-transform
+      (add-renderable
+       (hasty:entity!)
+       :mesh (yaksha:make-mesh :stream cached-gpu-data
+			       :textures nil))))))
 
 (let (cached-gpu-data)
   (defun make-sphere (&key (radius 10.0) physics)
@@ -28,11 +29,12 @@
 	    (add-to-release-pool
 	     (%prim->gpu-data
 	      (dendrite.primitives:sphere-data :radius radius)))))
-    (add-transform
-     (add-mesh-renderable
-      (hasty:entity!)
-      :mesh (yaksha:make-mesh :stream cached-gpu-data
-			      :textures nil)))))
+    (hasty:register-entity
+     (add-transform
+      (add-renderable
+       (hasty:entity!)
+       :mesh (yaksha:make-mesh :stream cached-gpu-data
+			       :textures nil))))))
 
 
 
@@ -44,3 +46,8 @@
    :index-array (jungl:make-gpu-array (second data-from-dendrite)
 				      :element-type :ushort)
    :retain-arrays t))
+
+(defmethod free ((object hasty:entity))
+  ;; todo cleanup
+  (hasty::unregister-entity object)
+  t)

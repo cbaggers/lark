@@ -18,19 +18,19 @@
 ;; system
 
 (hasty:def-component renderable (:reactive transform)
-    ((model (error "model must be supplied on construction of mesh-renderable")
-	    :type yaksha:model)
+    ((mesh (error "model must be supplied on construction of mesh-renderable")
+	    :type yaksha:mesh)
      (space (space! *world-space*) :type space))
   ;;
   ;; populate space from transform
   (with-transform (position rotation) entity
-    (update
-     :model->world (m4:m* (m4:translation position)
-			  (q:to-matrix4 (q:normalize rotation)))))
-
+    (setf (get-transform space *world-space*)
+	  (m4:m* (m4:translation position)
+		 (q:to-matrix4 (q:normalize rotation)))))
   ;; draw some stuff
-  (cepl.camera:using-camera *current-camera*
-    (map-g #'first-render (mesh-stream mesh) :model-space space)))
+  (with-eye (ccam) *current-camera*
+    (cepl.camera:using-camera ccam
+      (map-g #'first-render (mesh-stream mesh) :model-space space))))
 
 ;; so the main loop can (hasty:run-pass *render-pass*)
 (setf *render-pass* (hasty:get-system 'renderable))
