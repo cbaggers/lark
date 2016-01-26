@@ -5,7 +5,8 @@
 (defun start-engine ()
   (unless *started*
     (setf *started* t)
-    (cepl:repl)))
+    (unless jungl:*gl-context*
+      (cepl:repl))))
 
 (defun stop-engine ()
   ;; gotta free stuff here

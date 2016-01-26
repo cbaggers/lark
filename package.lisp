@@ -9,7 +9,7 @@
 	   :texture-jungl-texture :texture-type :y-texture
 	   :vertex-position :vertex-normal :vertex-tex-coords
 	   :mesh-stream :mesh-textures
-	   :model-filepath :model-meshes :texture))
+	   :model-filepath :model-meshes :texture :uv))
 
 (defpackage #:lark
   (:shadow :space)
