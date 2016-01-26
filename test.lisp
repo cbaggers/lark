@@ -1,3 +1,5 @@
 (in-package #:lark)
 
-(defgame-loop test-game ())
+(defvar cube (make-cube))
+
+(defgame test-game ())

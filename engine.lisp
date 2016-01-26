@@ -2,11 +2,17 @@
 
 (defvar *started* nil)
 
+(defvar *on-engine-start* nil)
+
 (defun start-engine ()
   (unless *started*
     (setf *started* t)
     (unless jungl:*gl-context*
-      (cepl:repl))))
+      (cepl:repl)
+      (loop :for func :in *on-engine-start* :do
+	 (funcall func)))
+    (unless *current-camera*
+      (setf *current-camera* (make-camera)))))
 
 (defun stop-engine ()
   ;; gotta free stuff here
@@ -18,50 +24,63 @@
 ;; {TODO} put this in main loop eventually
 (defvar *render-pass* nil)
 
-(defmacro defgame-loop (name (&key startup-function) &body body)
-  (let ((run-symb (cepl-utils:symb :run-loop))
-        (stop-symb (cepl-utils:symb :stop-loop)))
+(defmacro defgame (name (&key startup-function) &body body)
+  (let ((run-symb (cepl-utils:symb :run- name))
+        (stop-symb (cepl-utils:symb :stop- name))
+	(running-var (cepl-utils:symb :% name :-running)))
     `(progn
-       (defvar ,*running-var-name* nil)
+       (defvar ,running-var nil)
 
        (defun ,*step-func-name* ()
 	 ,@body)
 
-       (defun ,stop-symb () (setf ,*running-var-name* nil))
+       (defun ,stop-symb () (setf ,running-var nil))
 
        (evt:def-named-event-node %%sys-listener (e evt:|sys|)
 	 (when (typep e 'evt:will-quit) (,stop-symb)))
 
-       (defun ,run-symb ()
-	 (if *started*
-	     (if ,*running-var-name*
-		 (print "already running")
-		 (let ((main-loop-stepper (temporal-functions:make-stepper
-					   (seconds (/ 1.0 60.0))))
-		       (swank-stepper (temporal-functions:make-stepper
-				       (seconds (/ 1.0 10.0)))))
-		   (format t "-starting-")
-		   ,(when startup-function `(funcall ,startup-function))
-		   (setf ,*running-var-name* t)
-		   (unwind-protect
-			(loop :while ,*running-var-name* :do
-			   ;; update swank
-			   (when (funcall swank-stepper)
-			     (live:continuable (cepl::update-swank)))
-			   ;; update event system
-			   (live:continuable (evt:pump-events))
-			   ;; update temporal pool
-			   (ttm:update)
-			   ;; run step function
-			   (when (funcall main-loop-stepper)
-			     (live:continuable (funcall #',*step-func-name*)))
-			   ;; run all entity component system code (except rendering)
-			   (hasty:step-hasty)
-			   ;; run render pass
-			   (gl:clear :color-buffer-bit :depth-buffer-bit)
-			   (hasty:run-pass *render-pass*)
-			   (update-display))
-		     (setf ,*running-var-name* nil)
-		     (print "-shutting down-"))))
-	     (format t "Lark: Cannot run loop as engine has not been started."))
+       (defun ,(cepl-utils:symb :is- name :-running?) ()
+	 ,running-var)
+
+       (defun ,run-symb (&optional for-frames)
+	 (assert (or (null for-frames) (numberp for-frames)))
+	 (unless *started*
+	   (start-engine)
+	   (unless *started*
+	     (error "Lark: Cannot run ~s as engine could not be started."
+		    ',name)))
+	 (if ,running-var
+	     (print "already running")
+	     (let ((main-loop-stepper (temporal-functions:make-stepper
+				       (seconds (/ 1.0 60.0))))
+		   (swank-stepper (temporal-functions:make-stepper
+				   (seconds (/ 1.0 10.0)))))
+	       (format t "-starting-")
+	       ,(when startup-function `(funcall ,startup-function))
+	       (setf ,running-var t)
+	       (unwind-protect
+		    (loop :while (and ,running-var
+				      (if for-frames
+					  (> for-frames 0)
+					  t))
+		       :do
+		       (when for-frames (decf for-frames))
+		       ;; update swank
+		       (when (funcall swank-stepper)
+			 (live:continuable (cepl::update-swank)))
+		       ;; update event system
+		       (live:continuable (evt:pump-events))
+		       ;; update temporal pool
+		       (ttm:update)
+		       ;; run step function
+		       (when (funcall main-loop-stepper)
+			 (live:continuable (funcall #',*step-func-name*)))
+		       ;; run all entity component system code (except rendering)
+		       (hasty:step-hasty)
+		       ;; run render pass
+		       (gl:clear :color-buffer-bit :depth-buffer-bit)
+		       (hasty:run-pass *render-pass*)
+		       (update-display))
+		 (setf ,running-var nil)
+		 (print "-shutting down-"))))
 	 ',name))))

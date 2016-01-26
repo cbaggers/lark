@@ -9,6 +9,10 @@
    :filepath filepath
    :meshes (load-assimp-meshes filepath)))
 
+(defun make-model-from-mesh (mesh)
+  (make-model :filepath "n/a"
+	      :meshes (list mesh)))
+
 (defmethod print-object ((object model) stream)
   (format stream "#<lark-model ~s>" (sxhash object)))
 

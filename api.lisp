@@ -18,8 +18,9 @@
      (add-transform
       (add-renderable
        (hasty:entity!)
-       :mesh (yaksha:make-mesh :stream cached-gpu-data
-			       :textures nil))))))
+       :model (yaksha:make-model-from-mesh
+	       (yaksha:make-mesh :stream cached-gpu-data
+				 :textures nil)))))))
 
 (let (cached-gpu-data)
   (defun make-sphere (&key (radius 10.0) physics)
@@ -33,8 +34,9 @@
      (add-transform
       (add-renderable
        (hasty:entity!)
-       :mesh (yaksha:make-mesh :stream cached-gpu-data
-			       :textures nil))))))
+       :model (yaksha:make-model-from-mesh
+	       (yaksha:make-mesh :stream cached-gpu-data
+				 :textures nil)))))))
 
 (defun make-widget ()
   (let* ((verts (make-gpu-array `((,(v! +1  +1  +1) ,(v! 0 0 0) ,(v! 0.1 0.8))
@@ -55,8 +57,10 @@
      (add-transform
       (add-renderable
        (hasty:entity!)
-       :mesh (yaksha:make-mesh :stream e-stream
-			       :textures nil))))))
+       :model
+       (make-model-from-mesh
+	(yaksha:make-mesh :stream e-stream
+			  :textures nil)))))))
 
 
 
