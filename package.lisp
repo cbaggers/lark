@@ -7,16 +7,18 @@
   (:shadow :space :texture :make-texture)
   (:export :vertex
 	   :mesh :make-mesh
-	   :model :load-model :make-model-from-mesh ;;:make-model
+	   :model :load-model :make-model-from-mesh
 	   :texture-jungl-texture :texture-type :y-texture
 	   :vertex-position :vertex-normal :vertex-tex-coords
 	   :mesh-stream :mesh-textures
-	   :model-filepath :model-meshes :texture :uv))
+	   :model-filepath :model-meshes :texture
+	   :uv :normal))
 
 (defpackage #:lark
   (:shadow :space)
   (:import-from :cl-game-math.projection
 		:perspective)
+  (:import-from :temporal-functions :real-seconds)
   (:use #:cl #:temporal-functions #:jungl #:jungl.space
 	#:cl-game-math.base-vectors #:cl-game-math.base-matrices
-	#:yaksha))
+	#:varjo-lang))

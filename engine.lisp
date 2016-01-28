@@ -2,15 +2,23 @@
 
 (defvar *started* nil)
 
-(defvar *on-engine-start* nil)
+(defgeneric on-engine-start ())
+(defmethod on-engine-start ())
+
+(defmacro deflvar (name value)
+  (if *started*
+      `(defparameter ,name ,value)
+      `(progn
+	 (defvar ,name)
+	 (defmethod on-engine-start :after ()
+		    (setf ,name ,value)))))
 
 (defun start-engine ()
   (unless *started*
     (setf *started* t)
     (unless jungl:*gl-context*
       (cepl:repl)
-      (loop :for func :in *on-engine-start* :do
-	 (funcall func)))
+      (on-engine-start))
     (unless *current-camera*
       (setf *current-camera* (make-camera)))))
 
@@ -71,15 +79,15 @@
 		       ;; update event system
 		       (live:continuable (evt:pump-events))
 		       ;; update temporal pool
-		       (ttm:update)
+		       (live:continuable (ttm:update))
 		       ;; run step function
 		       (when (funcall main-loop-stepper)
 			 (live:continuable (funcall #',*step-func-name*)))
 		       ;; run all entity component system code (except rendering)
-		       (hasty:step-hasty)
+		       (live:continuable (hasty:step-hasty))
 		       ;; run render pass
 		       (gl:clear :color-buffer-bit :depth-buffer-bit)
-		       (hasty:run-pass *render-pass*)
+		       (live:continuable (hasty:run-pass *render-pass*))
 		       (update-display))
 		 (setf ,running-var nil)
 		 (print "-shutting down-"))))

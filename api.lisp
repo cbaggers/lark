@@ -23,6 +23,23 @@
 				 :textures nil)))))))
 
 (let (cached-gpu-data)
+  (defun make-box (&key (width 80.0) (height 1.0) (depth 80.0) physics)
+    (declare (ignore physics))
+    (unless cached-gpu-data
+      (setf cached-gpu-data
+	    (add-to-release-pool
+	     (%prim->gpu-data
+	      (dendrite.primitives:box-data
+	       :width width :height height :depth depth)))))
+    (hasty:register-entity
+     (add-transform
+      (add-renderable
+       (hasty:entity!)
+       :model (yaksha:make-model-from-mesh
+	       (yaksha:make-mesh :stream cached-gpu-data
+				 :textures nil)))))))
+
+(let (cached-gpu-data)
   (defun make-sphere (&key (radius 10.0) physics)
     (declare (ignore physics))
     (unless cached-gpu-data

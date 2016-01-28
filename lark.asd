@@ -20,10 +20,17 @@
 	       (:file "pools")
 	       (:file "engine")
 
+	       (:file "lights")
+
+	       ;; useful data
+	       (:file "misc-data")
+
 	       ;; components
-	       (:file "transform")
-	       (:file "camera")
-	       (:file "renderable")
+	       (:file "components/transform")
+	       (:file "components/camera")
+	       (:file "components/renderable")
 
 	       ;; api
-	       (:file "api")))
+	       (:file "api")
+
+	       ))
