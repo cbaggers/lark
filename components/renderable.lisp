@@ -35,6 +35,14 @@
 (defpipeline first-render ()
     (g-> #'first-vert #'first-frag))
 
+;; (defun-g test ((norm :vec3) (pos :vec3) (uv :vec2))
+;;   (in *clip-space*
+;;     (in *screen-space*
+;;       (p! (v! 0 0 0 0)))))
+
+;; (defpipeline woah ()
+;;     (g-> #'first-vert #'test))
+
 ;;----------------------------------------------------------------------
 ;; system
 (progn
@@ -58,9 +66,6 @@
 	   ;;     (+ -20 (* (sin (/ (get-internal-real-time) 600)) 50)))
 	    ))
 
-      (with-transform (position) sphere
-	(setf position (v:* light-pos 0.4)))
-
       ;; draw some stuff
       (with-viewport (current-viewport)
 	(with-eye (ccam) *current-camera*
@@ -80,4 +85,3 @@
   (setf *render-pass* (hasty:get-system 'renderable)))
 
 ;;----------------------------------------------------------------------
-temporal-functions:

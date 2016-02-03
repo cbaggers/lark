@@ -75,7 +75,7 @@
       (add-renderable
        (hasty:entity!)
        :model
-       (make-model-from-mesh
+       (yaksha:make-model-from-mesh
 	(yaksha:make-mesh :stream e-stream
 			  :textures nil)))))))
 

@@ -2,8 +2,7 @@
 
 (defpackage #:yaksha
   (:use #:cl #:named-readtables #:cepl-utils #:jungl
-	#:cl-game-math.base-vectors #:cl-game-math.base-matrices
-	#:jungl.space)
+	#:rtg-math #:jungl.space)
   (:shadow :space :texture :make-texture)
   (:export :vertex
 	   :mesh :make-mesh
@@ -16,9 +15,8 @@
 
 (defpackage #:lark
   (:shadow :space)
-  (:import-from :cl-game-math.projection
+  (:import-from :rtg-math.projection
 		:perspective)
   (:import-from :temporal-functions :real-seconds)
   (:use #:cl #:temporal-functions #:jungl #:jungl.space
-	#:cl-game-math.base-vectors #:cl-game-math.base-matrices
-	#:varjo-lang))
+	#:varjo-lang #:rtg-math))
