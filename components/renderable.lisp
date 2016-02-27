@@ -54,8 +54,8 @@
     ;; populate space from transform
     (with-transform (position rotation) entity
       (setf (get-transform space *world-space*)
-	    (m4:m* (m4:translation position)
-		   (q:to-matrix4 rotation))))
+	    (m4:* (m4:translation position)
+		  (q:to-mat4 rotation))))
 
 
     (let ((light-pos (v! 0

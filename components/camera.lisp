@@ -1,8 +1,6 @@
 (in-package #:lark)
 
 (defvar *world-up* (v! 0 1 0))
-(defvar *screen* nil)
-(defvar *current-camera* nil)
 
 (hasty:def-component eye (transform)
     ((ccam (cepl.camera:make-camera)))

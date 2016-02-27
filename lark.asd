@@ -5,11 +5,11 @@
   :author "Baggers <techsnuffle@gmail.com>"
   :license "GPLv3"
   :serial t
-  :depends-on (#:cepl-default #:classimp #:fn #:named-readtables
-			      #:cepl.camera
-			      #:cepl-image-helper #:cl-fad
-			      #:temporal-functions #:hasty
-			      #:dendrite #:disposable)
+  :depends-on (#:cepl.sdl2 #:cepl.camera #:cepl.devil #:cepl.skitter.sdl2
+			   #:classimp #:fn #:named-readtables
+			   #:cl-fad #:temporal-functions #:hasty
+			   #:dendrite #:disposable
+			   #:swank.live)
   :components ((:file "package")
 
 	       ;; mesh and models
@@ -17,9 +17,9 @@
 	       (:file "yaksha/model")
 
 	       ;; lark core api
+	       (:file "state")
 	       (:file "pools")
 	       (:file "engine")
-
 	       (:file "lights")
 
 	       ;; useful data
@@ -31,6 +31,4 @@
 	       (:file "components/renderable")
 
 	       ;; api
-	       (:file "api")
-
-	       ))
+	       (:file "api")))

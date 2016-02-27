@@ -44,9 +44,6 @@
 
        (defun ,stop-symb () (setf ,running-var nil))
 
-       (evt:def-named-event-node %%sys-listener (e evt:|sys|)
-	 (when (typep e 'evt:will-quit) (,stop-symb)))
-
        (defun ,(cepl-utils:symb :is- name :-running?) ()
 	 ,running-var)
 
@@ -68,6 +65,7 @@
 	       (setf ,running-var t)
 	       (unwind-protect
 		    (loop :while (and ,running-var
+				      (not (cepl:shutting-down-p))
 				      (if for-frames
 					  (> for-frames 0)
 					  t))
@@ -75,20 +73,20 @@
 		       (when for-frames (decf for-frames))
 		       ;; update swank
 		       (when (funcall swank-stepper)
-			 (live:continuable (cepl::update-swank)))
+			 (swank.live::continuable (swank.live:update-swank)))
 		       ;; update event system
-		       (live:continuable (evt:pump-events))
+		       (swank.live::continuable (cepl:step-host))
 		       ;; update temporal pool
-		       (live:continuable (ttm:update))
+		       (swank.live::continuable (ttm:update))
 		       ;; run step function
 		       (when (funcall main-loop-stepper)
-			 (live:continuable (funcall #',*step-func-name*)))
+			 (swank.live::continuable (funcall #',*step-func-name*)))
 		       ;; run all entity component system code (except rendering)
-		       (live:continuable (hasty:step-hasty))
+		       (swank.live::continuable (hasty:step-hasty))
 		       ;; run render pass
 		       (gl:clear :color-buffer-bit :depth-buffer-bit)
-		       (live:continuable (hasty:run-pass *render-pass*))
-		       (update-display))
+		       (swank.live::continuable (hasty:run-pass *render-pass*))
+		       (swap))
 		 (setf ,running-var nil)
 		 (print "-shutting down-"))))
 	 ',name))))

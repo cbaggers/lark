@@ -9,5 +9,5 @@
 (defvar *backup-tex* nil)
 
 (defmethod on-engine-start :after ()
-  (setf *backup-tex* (devil-helper:load-image-to-texture
+  (setf *backup-tex* (cepl.devil:load-image-to-texture
 		      (path-relative-to-lark "./suit/body_dif.png"))))

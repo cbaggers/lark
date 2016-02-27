@@ -91,7 +91,7 @@
 						    tex-filename)))
       (or (gethash tex-filename texture-cache)
 	  (let ((tex (make-texture
-		      :jungl-texture (devil-helper:load-image-to-texture filepath)
+		      :jungl-texture (cepl.devil:load-image-to-texture filepath)
 		      :type (a-tex-type-name->lark-tex-type-name a-tex-type))))
 	    (setf (gethash tex-filename texture-cache) tex)
 	    tex)))))
