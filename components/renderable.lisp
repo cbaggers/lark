@@ -24,8 +24,9 @@
 	 (varjo-lang:clamp
 	  (in model-space
 	    (varjo-lang:dot (v:normalize (p! norm 0))
-			    (p! (- (in *world-space* (p! light-pos 0))
-				   (v! pos 0)))))
+			    (p! (v:normalize
+				 (- (in *world-space* (p! light-pos 0))
+				    (v! pos 0))))))
 	  0 1)))
     (+ (* diffuse-color *ambient-intensity*)
        (* light-intensity diffuse-color light-cos-a-of-i)
