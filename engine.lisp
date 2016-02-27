@@ -17,7 +17,7 @@
   (unless *started*
     (setf *started* t)
     (unless jungl:*gl-context*
-      (cepl:repl))
+      (cepl::init 320 240 "Lark" t))
     (on-engine-start)
     (unless *current-camera*
       (setf *current-camera* (make-camera)))))

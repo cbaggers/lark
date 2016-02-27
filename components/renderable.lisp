@@ -58,12 +58,13 @@
 		  (q:to-mat4 rotation))))
 
 
-    (let ((light-pos (v! 0
-			 (+ 25 (* 30 (sin (/ (get-internal-real-time) 800))))
-			 -0)
-	   ;; (v! (* (cos (/ (get-internal-real-time) 600)) 50)
-	   ;;     (* 10 (sin (/ (get-internal-real-time) 100)))
-	   ;;     (+ -20 (* (sin (/ (get-internal-real-time) 600)) 50)))
+    (let ((light-pos
+	   ;; (v! 0
+	   ;;     (+ 25 (* 30 (sin (/ (get-internal-real-time) 800))))
+	   ;;     -0)
+	   (v! (* (cos (/ (get-internal-real-time) 600)) 50)
+	       (* 10 (sin (/ (get-internal-real-time) 100)))
+	       (+ -20 (* (sin (/ (get-internal-real-time) 600)) 50)))
 	    ))
 
       ;; draw some stuff
