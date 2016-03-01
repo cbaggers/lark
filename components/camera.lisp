@@ -28,15 +28,17 @@
 ;;----------------------------------------------------------------------
 
 (hasty:def-component god-mode (eye) ()
-  (let ((mouse-pos (skitter:mouse-pos (skitter:mouse 0))))
-    (setf (rot entity) (q:from-fixed-angles
-			(/ (y (skitter:xy-pos-vec mouse-pos)) 300.0)
-			(/ (x (skitter:xy-pos-vec mouse-pos)) 300.0)
-			0)))
+  (let ((mouse-pos (mouse-movement)))
+    (setf (rot entity)
+	  (q:* (rot entity)
+	       (q:from-fixed-angles
+		(/ (y mouse-pos) 1000.0)
+		(/ (x mouse-pos) -1000.0)
+		0))))
   (let ((w (skitter:key-down-p key.w))
 	(s (skitter:key-down-p key.s))
 	(dir (q:to-look-at (rot entity))))
     (when w
-      (setf (pos entity) (v3:+ (pos entity) (v3:*s dir 0.01))))
+      (setf (pos entity) (v3:+ (pos entity) (v3:*s dir 0.1))))
     (when s
-      (setf (pos entity) (v3:- (pos entity) (v3:*s dir 0.01))))))
+      (setf (pos entity) (v3:- (pos entity) (v3:*s dir 0.1))))))

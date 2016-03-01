@@ -33,12 +33,7 @@
 (defvar *render-pass* nil)
 
 (defun update-internals ()
-  (break "Ok so we need a listener on mouse relative move
-this will accum all relative movement and then here we will
-set that val into a var which is the mouse-move from this frame.
-We then set the accum to 0
-
-Then look at sdl2s set-relative-mouse-mode"))
+  (swap-mouse-move))
 
 (defmacro defgame (name (&key startup-function) &body body)
   (let ((run-symb (cepl-utils:symb :run- name))
