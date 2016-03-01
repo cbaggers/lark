@@ -22,7 +22,8 @@
   (:import-from :cepl :pos)
   (:import-from :yaksha :uv :normal :normal)
   (:use #:cl #:temporal-functions #:jungl #:jungl.space
-	#:varjo-lang #:rtg-math))
+	#:varjo-lang #:rtg-math #:skitter.sdl2.keys
+	#:skitter.sdl2.mouse-buttons))
 
 (in-package #:lark)
 

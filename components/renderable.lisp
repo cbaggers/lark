@@ -20,7 +20,7 @@
 			     (in *world-space* (p! *dir-to-sun*))))
 	   0 1))
 	(diffuse-color (varjo-lang:texture tex uv))
-	(light-cos-a-of-i
+	(light-cos-angle-of-incidence
 	 (varjo-lang:clamp
 	  (in model-space
 	    (varjo-lang:dot (v:normalize (p! norm 0))
@@ -29,7 +29,7 @@
 				    (v! pos 0))))))
 	  0 1)))
     (+ (* diffuse-color *ambient-intensity*)
-       (* light-intensity diffuse-color light-cos-a-of-i)
+       (* light-intensity diffuse-color light-cos-angle-of-incidence)
        ;;(* *sun-intensity* diffuse-color sun-cos-angle-of-incidence)
        )))
 
@@ -64,7 +64,7 @@
 	   ;;     (+ 25 (* 30 (sin (/ (get-internal-real-time) 800))))
 	   ;;     -0)
 	   (v! (* (cos (/ (get-internal-real-time) 600)) 50)
-	       (* 10 (sin (/ (get-internal-real-time) 100)))
+	       100
 	       (+ -20 (* (sin (/ (get-internal-real-time) 600)) 50)))
 	    ))
 

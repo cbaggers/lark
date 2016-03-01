@@ -1,6 +1,10 @@
 (in-package lark)
 
 (hasty:def-component transform ()
-    ((position (cepl:v! 0 0 -20 0) :type (simple-array single-float (4)))
-     (rotation (q:identity) :type (simple-array single-float (4))))
+    ((position (cepl:v! 0 0 -20)
+	       :type (simple-array single-float (3))
+	       :accessor pos)
+     (rotation (q:identity)
+	       :type (simple-array single-float (4))
+	       :accessor rot))
   nil)

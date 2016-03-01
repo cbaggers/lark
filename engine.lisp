@@ -32,12 +32,21 @@
 ;; {TODO} put this in main loop eventually
 (defvar *render-pass* nil)
 
+(defun update-internals ()
+  (break "Ok so we need a listener on mouse relative move
+this will accum all relative movement and then here we will
+set that val into a var which is the mouse-move from this frame.
+We then set the accum to 0
+
+Then look at sdl2s set-relative-mouse-mode"))
+
 (defmacro defgame (name (&key startup-function) &body body)
   (let ((run-symb (cepl-utils:symb :run- name))
         (stop-symb (cepl-utils:symb :stop- name))
 	(running-var (cepl-utils:symb :% name :-running)))
     `(progn
        (defvar ,running-var nil)
+       (defvar *fps* 0)
 
        (defun ,*step-func-name* ()
 	 ,@body)
@@ -59,7 +68,10 @@
 	     (let ((main-loop-stepper (temporal-functions:make-stepper
 				       (seconds (/ 1.0 60.0))))
 		   (swank-stepper (temporal-functions:make-stepper
-				   (seconds (/ 1.0 10.0)))))
+				   (seconds (/ 1.0 10.0))))
+		   (fps-stepper (temporal-functions:make-stepper
+				 (seconds 1)))
+		   (fps-frame-count 0))
 	       (format t "-starting-")
 	       ,(when startup-function `(funcall ,startup-function))
 	       (setf ,running-var t)
@@ -74,8 +86,15 @@
 		       ;; update swank
 		       (when (funcall swank-stepper)
 			 (swank.live::continuable (swank.live:update-swank)))
+		       ;; update fps
+		       (incf fps-frame-count)
+		       (when (funcall fps-stepper)
+			 (setf *fps* fps-frame-count
+			       fps-frame-count 0))
 		       ;; update event system
 		       (swank.live::continuable (cepl:step-host))
+		       ;; update lark internal
+		       (update-internals)
 		       ;; update temporal pool
 		       (swank.live::continuable (ttm:update))
 		       ;; run step function

@@ -4,6 +4,7 @@
   :description "An experient to find the working state of cepl"
   :author "Baggers <techsnuffle@gmail.com>"
   :license "GPLv3"
+  #+asdf-unicode :encoding #+asdf-unicode :utf-8
   :serial t
   :depends-on (#:cepl.sdl2 #:cepl.camera #:cepl.devil #:cepl.skitter.sdl2
 			   #:classimp #:fn #:named-readtables

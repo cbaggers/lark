@@ -1,9 +1,12 @@
 (in-package :lark)
 
-
 (defun load-model (filepath &key physics)
   (declare (ignore physics))
-  (yaksha:load-model filepath))
+  (hasty:register-entity
+   (add-transform
+    (add-renderable
+     (hasty:entity!)
+     :model (yaksha:load-model filepath)))))
 
 (let (cached-gpu-data)
   (defun make-cube (&key (size 10.0) physics)
