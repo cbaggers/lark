@@ -27,6 +27,10 @@
 
 ;;----------------------------------------------------------------------
 
+;; {TODO} try adding to something. then removing...it acted like it was
+;;        still attached, until Ι recompiled the def-component below.
+;;        odd.. odder it happened with add too..WAT
+
 (hasty:def-component god-mode (eye) ()
   (let ((mouse-pos (mouse-movement)))
     (setf (rot entity)
