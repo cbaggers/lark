@@ -36,9 +36,9 @@
     (setf (rot entity)
 	  (q:* (rot entity)
 	       (q:from-fixed-angles
-		(/ (y mouse-pos) 1000.0)
-		(/ (x mouse-pos) -1000.0)
-		0))))
+	  	0 ;;(/ (y mouse-pos) 100.0)
+	  	(/ (x mouse-pos) -100.0)
+	  	0))))
   (let ((w (skitter:key-down-p key.w))
 	(s (skitter:key-down-p key.s))
 	(dir (q:to-look-at (rot entity))))
@@ -46,3 +46,13 @@
       (setf (pos entity) (v3:+ (pos entity) (v3:*s dir 0.1))))
     (when s
       (setf (pos entity) (v3:- (pos entity) (v3:*s dir 0.1))))))
+
+(defun reset-cam (cam)
+  (setf (rot cam) (q:identity)
+	(pos cam) (v! 0 0 0)))
+
+
+(defmacro using-camera (camera &body body)
+  `(with-eye (ccam) ,camera
+     (cepl.camera:using-camera ccam
+       ,@body)))

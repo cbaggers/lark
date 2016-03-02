@@ -34,13 +34,15 @@
 (defun update-internals ()
   (swap-mouse-move))
 
+
+(defvar *fps* 0)
+
 (defmacro defgame (name (&key startup-function) &body body)
   (let ((run-symb (cepl-utils:symb :run- name))
         (stop-symb (cepl-utils:symb :stop- name))
 	(running-var (cepl-utils:symb :% name :-running)))
     `(progn
        (defvar ,running-var nil)
-       (defvar *fps* 0)
 
        (defun ,*step-func-name* ()
 	 ,@body)

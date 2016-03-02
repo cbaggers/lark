@@ -70,18 +70,17 @@
 
       ;; draw some stuff
       (with-viewport (current-viewport)
-	(with-eye (ccam) *current-camera*
-	  (cepl.camera:using-camera ccam
-	    (loop :for mesh :in (yaksha:model-meshes model) :do
-	       (map-g #'first-render (yaksha:mesh-stream mesh)
-		      :model-space space
-		      :camera-space (cepl.camera.base::base-camera-space ccam)
-		      :tex (let ((y-tex (first (yaksha:mesh-textures mesh))))
-			     (if y-tex
-				 (yaksha::texture-jungl-texture y-tex)
-				 *backup-tex*))
-		      :light-pos light-pos
-		      :light-intensity 0.5)))))))
+	(using-camera *current-camera*
+	  (loop :for mesh :in (yaksha:model-meshes model) :do
+	     (map-g #'first-render (yaksha:mesh-stream mesh)
+		    :model-space space
+		    :camera-space (cepl.camera.base::base-camera-space ccam)
+		    :tex (let ((y-tex (first (yaksha:mesh-textures mesh))))
+			   (if y-tex
+			       (yaksha::texture-jungl-texture y-tex)
+			       *backup-tex*))
+		    :light-pos light-pos
+		    :light-intensity 0.5))))))
 
   ;; so the main loop can (hasty:run-pass *render-pass*)
   (setf *render-pass* (hasty:get-system 'renderable)))

@@ -11,8 +11,8 @@
   (setf *sky-enabled* nil))
 
 
-(defun-g vert ((vert :vec3) &uniform (to-cam-space :mat4) (pos :vec3))
-  (let ((pos (* to-cam-space (v! (+ pos vert) 1.0))))
+(defun-g vert ((vert :vec3) &uniform (to-cam-space :mat4))
+  (let ((pos (* to-cam-space (v! vert 1.0))))
     (values (s~ pos :xyww)
 	    vert)))
 
@@ -24,16 +24,25 @@
 (defun render-sky ()
   (when *sky-enabled*
     (gl:depth-func :lequal)
-    (with-viewport (current-viewport)
-      (with-eye (ccam) *current-camera*
-	(cepl.camera:using-camera ccam
+
+    (break "
+Heya future chris, this is past chris with a bug.
+Just below this break is the calculation of to-clip. it should be inside that
+'using-camera' but it breaks hard in there. I think it's because the starting
+node is the route-restriction. Should be easy enough to fix")
+
+    (let ((to-clip (jungl.space:get-transform
+		    (cepl.camera.base::base-camera-space (eye-ccam *current-camera*))
+		    *clip-space*)))
+      (with-viewport (current-viewport)
+	(using-camera *current-camera*
 	  (let* ((transform (jungl.space:get-transform
 			     *world-space*
 			     (cepl.camera.base::base-camera-space ccam)))
 		 (no-translate (m4:from-mat3 (m4:to-mat3 transform))))
 	    (map-g #'skybox *skybox-stream*
 		   :tex *sky-cube-texture*
-		   :to-cam-space no-translate)))))
+		   :to-cam-space (m4:* to-clip no-translate))))))
     (gl:depth-func :less)))
 
 (defun make-cubemap-tex (&rest paths)
@@ -44,7 +53,8 @@
     (make-texture ca :element-type :rgb8 :cubes t)))
 
 (defun init-sky-data ()
-  (let* ((bx (dendrite.primitives:box-data :normals nil :tex-coords nil))
+  (let* ((bx (dendrite.primitives:cube-data
+	      :size 2s0 :normals nil :tex-coords nil))
          (data (make-gpu-array (first bx) :element-type :vec3))
          (ind (make-gpu-array
 	       (dendrite.primitives:swap-winding-order (second bx))
