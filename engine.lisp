@@ -1,9 +1,7 @@
 (in-package :lark)
 
 (defvar *started* nil)
-
-(defgeneric on-engine-start ())
-(defmethod on-engine-start ())
+(defvar *on-engine-init* nil)
 
 (defmacro deflvar (name value)
   (if *started*
@@ -15,12 +13,13 @@
 
 (defun start-engine ()
   (unless *started*
-    (setf *started* t)
     (unless jungl:*gl-context*
       (cepl::init 320 240 "Lark" t))
-    (on-engine-start)
+    (map nil #'funcall *on-engine-init*)
+    (setf *on-engine-init* nil)
     (unless *current-camera*
-      (setf *current-camera* (make-camera)))))
+      (setf *current-camera* (make-camera)))
+    (setf *started* t)))
 
 (defun stop-engine ()
   ;; gotta free stuff here
@@ -100,6 +99,7 @@
 		       ;; run render pass
 		       (gl:clear :color-buffer-bit :depth-buffer-bit)
 		       (swank.live::continuable (hasty:run-pass *render-pass*))
+		       (render-sky)
 		       (swap))
 		 (setf ,running-var nil)
 		 (print "-shutting down-"))))

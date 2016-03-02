@@ -16,7 +16,7 @@
   (hasty:register-entity
    (add-eye
     (add-transform (hasty:entity!)
-		   :position (v! 0 0 0 0)))))
+		   :position (v! 0 0 0)))))
 
 (defmethod viewport ((c hasty:entity))
   (cepl.camera:viewport (eye-ccam c)))

@@ -2,7 +2,8 @@
 
 (defparameter *mouse-move-listener*
   (progn
-    (when *mouse-move-listener*
+    (when (and (boundp '*mouse-move-listener*)
+	       (symbol-value '*mouse-move-listener*))
       (skitter:stop-listening *mouse-move-listener*))
     (skitter:listen-to (skitter:make-event-listener #'receive-mouse-movement)
 		       (skitter:mouse 0)
@@ -20,3 +21,9 @@
   (defun swap-mouse-move ()
     (setf mouse-movement last-frame-relative-movement
 	  last-frame-relative-movement (v! 0 0))))
+
+(defun enable-mouse-capture ()
+  (sdl2:set-relative-mouse-mode :true))
+
+(defun disable-mouse-capture ()
+  (sdl2:set-relative-mouse-mode :true))

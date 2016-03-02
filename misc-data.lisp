@@ -8,6 +8,8 @@
 
 (defvar *backup-tex* nil)
 
-(defmethod on-engine-start :after ()
+(defun init-misc-data ()
   (setf *backup-tex* (cepl.devil:load-image-to-texture
 		      (path-relative-to-lark "./suit/body_dif.png"))))
+
+(push #'init-misc-data *on-engine-init*)

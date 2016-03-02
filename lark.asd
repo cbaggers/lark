@@ -26,10 +26,16 @@
 	       ;; useful data
 	       (:file "misc-data")
 
+	       ;; control
+	       (:file "mouse")
+
 	       ;; components
 	       (:file "components/transform")
 	       (:file "components/camera")
 	       (:file "components/renderable")
+
+	       ;; sky
+	       (:file "sky/sky")
 
 	       ;; api
 	       (:file "api")))
