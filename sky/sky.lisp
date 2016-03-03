@@ -24,25 +24,18 @@
 (defun render-sky ()
   (when *sky-enabled*
     (gl:depth-func :lequal)
-
-    (break "
-Heya future chris, this is past chris with a bug.
-Just below this break is the calculation of to-clip. it should be inside that
-'using-camera' but it breaks hard in there. I think it's because the starting
-node is the route-restriction. Should be easy enough to fix")
-
-    (let ((to-clip (jungl.space:get-transform
-		    (cepl.camera.base::base-camera-space (eye-ccam *current-camera*))
-		    *clip-space*)))
-      (with-viewport (current-viewport)
-	(using-camera *current-camera*
-	  (let* ((transform (jungl.space:get-transform
-			     *world-space*
-			     (cepl.camera.base::base-camera-space ccam)))
-		 (no-translate (m4:from-mat3 (m4:to-mat3 transform))))
-	    (map-g #'skybox *skybox-stream*
-		   :tex *sky-cube-texture*
-		   :to-cam-space (m4:* to-clip no-translate))))))
+    (with-viewport (current-viewport)
+      (using-camera *current-camera*
+	(let* ((transform (jungl.space:get-transform
+			   *world-space*
+			   (cepl.camera.base::base-camera-space ccam)))
+	       (no-translate (m4:from-mat3 (m4:to-mat3 transform)))
+	       (to-clip (jungl.space:get-transform
+			 (cepl.camera.base::base-camera-space (eye-ccam *current-camera*))
+			 *clip-space*)))
+	  (map-g #'skybox *skybox-stream*
+		 :tex *sky-cube-texture*
+		 :to-cam-space (m4:* to-clip no-translate)))))
     (gl:depth-func :less)))
 
 (defun make-cubemap-tex (&rest paths)
