@@ -23,7 +23,8 @@
   (:import-from :yaksha :uv :normal :normal)
   (:use #:cl #:temporal-functions #:jungl #:jungl.space
 	#:varjo-lang #:rtg-math #:skitter.sdl2.keys
-	#:skitter.sdl2.mouse-buttons))
+	#:skitter.sdl2.mouse-buttons
+	#:structy-defclass))
 
 (in-package #:lark)
 

@@ -93,13 +93,14 @@
 		       (update-internals)
 		       ;; update temporal pool
 		       (swank.live::continuable (ttm:update))
+		       ;; clear
+		       (gl:clear :color-buffer-bit :depth-buffer-bit)
 		       ;; run step function
 		       (when (funcall main-loop-stepper)
 			 (swank.live::continuable (funcall #',*step-func-name*)))
 		       ;; run all entity component system code (except rendering)
 		       (swank.live::continuable (hasty:step-hasty))
 		       ;; run render pass
-		       (gl:clear :color-buffer-bit :depth-buffer-bit)
 		       (swank.live::continuable (hasty:run-pass *render-pass*))
 		       (render-sky)
 		       (swap))

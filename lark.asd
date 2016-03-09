@@ -10,6 +10,7 @@
 			   #:classimp #:fn #:named-readtables
 			   #:cl-fad #:temporal-functions #:hasty
 			   #:dendrite #:disposable
+			   #:structy-defclass
 			   #:swank.live)
   :components ((:file "package")
 

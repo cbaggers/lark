@@ -1,3 +1,4 @@
 (in-package #:lark)
 
-(defgame test-game ())
+(defgame test-game ()
+  (update-particles partycoils))

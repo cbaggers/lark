@@ -32,7 +32,8 @@
     (setf (rot entity)
 	  (q:* (rot entity)
 	       (q:from-fixed-angles
-	  	0 ;;(/ (y mouse-pos) 100.0)
+	  	;;0
+		(/ (y mouse-pos) 100.0)
 	  	(/ (x mouse-pos) -100.0)
 	  	0))))
   (let ((w (skitter:key-down-p key.w))
