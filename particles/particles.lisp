@@ -5,15 +5,14 @@
 (defparameter *particle-resolution* '(1024 1024))
 (defparameter *starting-positions* nil)
 (defparameter *starting-velocities*
-  (make-array *particle-resolution* :initial-element (v! 0 0 0)))
+  (make-c-array (make-array *particle-resolution* :initial-element (v! 0 0 0))
+		:element-type :half-vec3))
 
 (deftclass particle-gbuffer
   (positions (make-texture *starting-positions*
-			   :dimensions *particle-resolution*
 			   :element-type :rgb32f))
   (positions-fbo nil)
   (velocities (make-texture *starting-velocities*
-			    :dimensions *particle-resolution*
 			    :element-type :rgb16f))
   (velocities-fbo nil))
 
@@ -62,15 +61,15 @@
 	  (make-buffer-stream
 	   (make-gpu-array verts :element-type 'cepl:g-pt)
 	   :index-array (make-gpu-array indices-for-1 :element-type :ushort)))
-    (setf *particle-stream* (apply #'thing *particle-resolution*))
-    (let ((arr (make-array *particle-resolution*
-			   :element-type 'rtg-math.types:vec3)))
-      (loop :for y :below (second *particle-resolution*) :do
-	 (loop :for x :below (first *particle-resolution*) :do
-	    (setf (aref arr x y) (v! (- (random 20.0) 10)
-				     (- (random 20.0) 10)
-				     0))))
-      (setf *starting-positions* arr))
+    (setf *particle-stream*
+	  (apply #'make-particle-stream *particle-resolution*))
+    (let ((arr (make-c-array nil :dimensions *particle-resolution*
+			     :element-type :vec3)))
+      (labels ((init (ptr x y)
+		 (declare (ignore x y))
+		 (jungl::vec3-to-foreign
+		  ptr (- (random 20.0) 10) (- (random 20.0) 10) 0s0)))
+	(setf *starting-positions* (across-c-ptr #'init arr))))
     t))
 
 ;;----------------------------------------------------------------
@@ -95,7 +94,7 @@
 				     (velocities :sampler-2d))
   (let ((position (texture positions tex-coord))
 	(velocity (texture velocities tex-coord)))
-    (* (normalize (- (v! 0 0 -20 0) position)) 0.001)))
+    (* (normalize (- (v! 0 0 -20 0) position)) 0.0001)))
 
 (defpipeline update-velocities ()
     (g-> #'particle-vert #'update-particle-velocities))
@@ -153,31 +152,30 @@
 
 ;; (v! vert.x vert.y pos.u pos.v)
 
-(defun thing (size-x size-y)
+(defun make-particle-stream (size-x size-y)
   (let* ((quad-verts (list (v! -1.0 -1.0) (v! 1.0 -1.0)
 			   (v! 1.0 1.0) (v! -1.0 1.0)))
-	 (data (make-array (* 4 size-x size-y)
-			   :element-type 'rtg-math.types:vec4
-			   :initial-element (v! 0 0 0 0)))
-	 (verts (loop :for y :below size-y :do
-		   (loop :for x :below size-x :do
-		      (loop :for qv :in quad-verts :for i :from 0 :do
-			 (let ((index (+ i (* x 4) (* y 4 size-x))))
-			   (setf (aref data index)
-				 (v! (v:x qv) (v:y qv) x y)))))
-		   :finally (return (make-gpu-array data :element-type :vec4))))
+	 (verts
+	  (with-c-array
+	      (arr (make-c-array nil :dimensions (* 4 size-x size-y)
+				 :element-type :vec4))
+	    (labels ((put (ptr index)
+		       (multiple-value-bind (y x) (floor index size-x)
+			 (let ((qv (elt quad-verts (mod x 4))))
+			   (jungl::vec4-to-foreign ptr (v:x qv) (v:y qv)
+						   (+ 0s0 x) (+ 0s0 y))))))
+	      (across-c-ptr #'put arr))
+	    (make-gpu-array arr)))
 	 (indices (with-c-array
-		      (x (make-c-array nil :dimensions (* 6 size-x size-y)
-				       :element-type :uint))
-		    (let ((index #(3 0 1 3 1 2))
-			  (offset 0))
-		      (loop :for i :below (* size-x size-y 6) :by 6 :do
-			 (loop :for e :across index :for j :from 0 :do
-			    (setf (cffi:mem-aref (c-array-pointer x) :uint
-						(+ i j))
-				  (+ e offset)))
-			 (incf offset 4)))
-		    (make-gpu-array x))))
+		      (arr (make-c-array nil :dimensions (* 6 size-x size-y)
+					 :element-type :uint))
+		    (let ((indices #(3 0 1 3 1 2)))
+		      (labels ((put (ptr x)
+				 (multiple-value-bind (quad-num n) (floor x 6)
+				   (setf (cffi:mem-aref ptr :uint)
+					 (+ (aref indices n) (* quad-num 4))))))
+			(across-c-ptr #'put arr)))
+		    (make-gpu-array arr))))
     (make-buffer-stream verts :index-array indices :retain-arrays t)))
 
 ;;----------------------------------------------------------------
