@@ -19,10 +19,10 @@
 		   :position (v! 0 0 0)))))
 
 (defmethod viewport ((c hasty:entity))
-  (cepl.camera:viewport (eye-ccam c)))
+  (viewport (eye-ccam c)))
 
 (defmethod (setf viewport) (value (c hasty:entity))
-  (setf (cepl.camera:viewport (eye-ccam c))
+  (setf (viewport (eye-ccam c))
 	value))
 
 ;;----------------------------------------------------------------------

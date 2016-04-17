@@ -86,10 +86,10 @@
 
 
 (defun %prim->gpu-data (data-from-dendrite)
-  (jungl:make-buffer-stream
-   (jungl:make-gpu-array (first data-from-dendrite)
+  (cepl:make-buffer-stream
+   (cepl:make-gpu-array (first data-from-dendrite)
 			 :element-type 'yaksha:vertex)
-   :index-array (jungl:make-gpu-array (second data-from-dendrite)
+   :index-array (cepl:make-gpu-array (second data-from-dendrite)
 				      :element-type :ushort)
    :retain-arrays t))
 

@@ -3,29 +3,29 @@
 ;;----------------------------------------------------------------------
 ;; Shader pipeline
 
-(defun-g first-vert ((vert yaksha:vertex) &uniform (model-space space-g))
+(defun-g first-vert ((vert yaksha:vertex) &uniform (model-space vec-space))
   (in *clip-space*
-    (values (in model-space (p! (pos vert) 1.0))
+    (values (in model-space (sv! (pos vert) 1.0))
 	    (pos vert)
 	    (yaksha:normal vert)
 	    (yaksha:uv vert))))
 
 (defun-g first-frag ((norm :vec3) (pos :vec3) (uv :vec2) &uniform (tex :sampler-2d)
-		     (camera-space space-g) (model-space space-g)
+		     (camera-space vec-space) (model-space vec-space)
 		     (light-pos :vec3) (light-intensity :float))
   (let ((sun-cos-angle-of-incidence
 	  (varjo-lang:clamp
 	   (in camera-space
-	     (varjo-lang:dot (v:normalize (in model-space (p! norm 0)))
-			     (in *world-space* (p! *dir-to-sun*))))
+	     (varjo-lang:dot (v:normalize (in model-space (sv! norm 0)))
+			     (in *world-space* (sv! *dir-to-sun*))))
 	   0 1))
 	(diffuse-color (varjo-lang:texture tex uv))
 	(light-cos-angle-of-incidence
 	 (varjo-lang:clamp
 	  (in model-space
-	    (varjo-lang:dot (v:normalize (p! norm 0))
-			    (p! (v:normalize
-				 (- (in *world-space* (p! light-pos 0))
+	    (varjo-lang:dot (v:normalize (sv! norm 0))
+			    (sv! (v:normalize
+				 (- (in *world-space* (sv! light-pos 0))
 				    (v! pos 0))))))
 	  0 1)))
     (+ (* diffuse-color *ambient-intensity*)
@@ -33,16 +33,8 @@
        ;;(* *sun-intensity* diffuse-color sun-cos-angle-of-incidence)
        )))
 
-(defpipeline first-render ()
-    (g-> #'first-vert #'first-frag))
-
-;; (defun-g test ((norm :vec3) (pos :vec3) (uv :vec2))
-;;   (in *clip-space*
-;;     (in *screen-space*
-;;       (p! (v! 0 0 0 0)))))
-
-;; (defpipeline woah ()
-;;     (g-> #'first-vert #'test))
+(def-g-> first-render ()
+  #'first-vert #'first-frag)
 
 ;;----------------------------------------------------------------------
 ;; system
@@ -50,7 +42,7 @@
   (hasty:def-component renderable (:reactive transform)
       ((model (error "model must be supplied on construction of mesh-renderable")
 	      :type yaksha:model)
-       (space (space! *world-space* (m4:identity)) :type space))
+       (space (make-space *world-space* (m4:identity)) :type vec-space))
 
     ;; populate space from transform
     (with-transform (position rotation) entity
@@ -75,10 +67,10 @@
 	     (map-g #'first-render (yaksha:mesh-stream mesh)
 		    :model-space space
 		    :camera-space (cepl.camera.base::base-camera-space ccam)
-		    :tex (let ((y-tex (first (yaksha:mesh-textures mesh))))
+		    :tex (let ((y-tex (first (yaksha:mesh-samplers mesh))))
 			   (if y-tex
-			       (yaksha::texture-jungl-texture y-tex)
-			       *backup-tex*))
+			       (yaksha::texture-cepl-texture y-tex)
+			       *backup-tex-sampler*))
 		    :light-pos light-pos
 		    :light-intensity 0.5))))))
 

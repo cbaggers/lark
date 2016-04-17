@@ -13,7 +13,7 @@
 
 (defun start-engine ()
   (unless *started*
-    (unless jungl:*gl-context*
+    (unless cepl.context:*gl-context*
       (cepl::init 640 480 "Lark" t))
     (map nil #'funcall *on-engine-init*)
     (setf *on-engine-init* nil)

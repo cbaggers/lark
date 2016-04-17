@@ -1,18 +1,19 @@
 (in-package #:yaksha)
 (in-readtable fn:fn-reader)
 
-(jungl:defstruct-g vertex ()
+(cepl:defstruct-g vertex
   (position :vec3 :accessor pos)
   (normal :vec3 :accessor normal)
   (tex-coords :vec2 :accessor uv))
 
 (defstruct texture
-  jungl-texture
+  cepl-texture
   type)
 
 (defstruct mesh
   stream ;; will retain the arrays in here
-  (textures nil :type list))
+  (textures nil :type list)
+  (samplers nil :type list))
 
 (defgeneric free (object))
 
@@ -20,23 +21,24 @@
   nil)
 
 (defmethod free ((object mesh))
-  (jungl:free-vertex-stream (mesh-stream object))
+  (cepl:free-buffer-stream (mesh-stream object))
+  (mapcar #'free (mesh-samplers object))
   (mapcar #'free (mesh-textures object))
   t)
 
 (defmethod free ((object texture))
-  (jungl:free-texture (texture-jungl-texture object))
+  (cepl:free-texture (texture-cepl-texture object))
   t)
 
 (defmethod print-object ((object mesh) stream)
   (format stream "#<lark-mesh :verts ~s>"
-	  (jungl::vertex-stream-length (mesh-stream object))))
+	  (buffer-stream-length (mesh-stream object))))
 
 (defmethod print-object ((object texture) stream)
   (format stream "#<lark-texture :dimensions ~s>"
-	  (jungl:dimensions
-	   (jungl:texref
-	    (texture-jungl-texture object)))))
+	  (cepl:dimensions
+	   (cepl:texref
+	    (texture-cepl-texture object)))))
 
 ;;----------------------------------------------------------------------
 
@@ -61,13 +63,14 @@
 	 (textures (a-mesh->textures a-mesh materials model-filename
 				     texture-cache)))
     (make-mesh
-     :stream (jungl:make-buffer-stream vertex-gpu-array
+     :stream (cepl:make-buffer-stream vertex-gpu-array
 				       :index-array index-gpu-array
 				       :retain-arrays t)
-     :textures textures)))
+     :textures textures
+     :samplers (mapcar #'sample textures))))
 
 (defun a-mesh->indicies-gpu-array (a-mesh)
-  (jungl:make-gpu-array
+  (cepl:make-gpu-array
    (reduce λ(concatenate 'list _ _1) (assimp:faces a-mesh))
    :element-type :ushort))
 
@@ -91,7 +94,7 @@
 						    tex-filename)))
       (or (gethash tex-filename texture-cache)
 	  (let ((tex (make-texture
-		      :jungl-texture (cepl.devil:load-image-to-texture filepath)
+		      :cepl-texture (cepl.devil:load-image-to-texture filepath)
 		      :type (a-tex-type-name->lark-tex-type-name a-tex-type))))
 	    (setf (gethash tex-filename texture-cache) tex)
 	    tex)))))
@@ -120,7 +123,7 @@
     (assert (= (length positions)
 	       (length normals)
 	       (length uvs)))
-    (jungl:make-gpu-array
+    (cepl:make-gpu-array
      (map 'list #'list positions normals uvs)
      :element-type 'vertex)))
 

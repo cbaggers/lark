@@ -1,27 +1,21 @@
 ;;;; package.lisp
 
 (defpackage #:yaksha
-  (:use #:cl #:named-readtables #:cepl-utils #:jungl
-	#:rtg-math #:jungl.space)
-  (:import-from :cepl :pos)
-  (:shadow :space :texture :make-texture)
+  (:use #:cl #:named-readtables #:cepl-utils #:cepl #:rtg-math)
+  (:shadow :texture :make-texture)
   (:export :vertex
 	   :mesh :make-mesh
 	   :model :load-model :make-model-from-mesh
-	   :texture-jungl-texture :texture-type :y-texture
+	   :texture-cepl-texture :texture-type :y-texture
 	   :vertex-position :vertex-normal :vertex-tex-coords
-	   :mesh-stream :mesh-textures
+	   :mesh-stream :mesh-textures :mesh-samplers
 	   :model-filepath :model-meshes :texture
 	   :uv :normal))
 
 (defpackage #:lark
-  (:shadow :space)
-  (:import-from :rtg-math.projection
-		:perspective)
-  (:import-from :temporal-functions)
-  (:import-from :cepl :pos)
+  (:import-from :rtg-math.projection :perspective)
   (:import-from :yaksha :uv :normal :normal)
-  (:use #:cl #:temporal-functions #:jungl #:jungl.space
+  (:use #:cl #:temporal-functions #:cepl
 	#:varjo-lang #:rtg-math #:skitter.sdl2.keys
 	#:skitter.sdl2.mouse-buttons
 	#:structy-defclass))

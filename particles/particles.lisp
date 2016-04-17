@@ -67,7 +67,7 @@
 			     :element-type :vec3)))
       (labels ((init (ptr x y)
 		 (declare (ignore x y))
-		 (jungl::vec3-to-foreign
+		 (cepl.types.foreign:vec3-to-foreign
 		  ptr (- (random 20.0) 10) (- (random 20.0) 10) 0s0)))
 	(setf *starting-positions* (across-c-ptr #'init arr))))
     t))
@@ -84,8 +84,8 @@
 	(velocity (texture velocities tex-coord)))
     (+ (v! (s~ position :xy) -20 0) velocity)))
 
-(defpipeline move-particles ()
-    (g-> #'particle-vert #'update-particle-positions))
+(def-g-> move-particles ()
+  #'particle-vert #'update-particle-positions)
 
 ;;----------------------------------------------------------------
 
@@ -96,8 +96,8 @@
 	(velocity (texture velocities tex-coord)))
     (* (normalize (- (v! 0 0 -20 0) position)) 0.0001)))
 
-(defpipeline update-velocities ()
-    (g-> #'particle-vert #'update-particle-velocities))
+(def-g-> update-velocities ()
+  #'particle-vert #'update-particle-velocities)
 
 ;;----------------------------------------------------------------
 
@@ -107,7 +107,7 @@
 	 (corner-pos (v! (v:x vert) (v:y vert))))
     (values (in *clip-space*
 	      (in *world-space*
-		(p! (+ (v! corner-pos 0 0)
+		(sv! (+ (v! corner-pos 0 0)
 		       (v! 0 0 -500 0)
 		       (* 100 particle-position)))))
 	    (* (+ corner-pos (v! 1 1)) 0.5))))
@@ -115,8 +115,8 @@
 (defun-g place-particle-frag ((tex-coord :vec2))
   (v! 1 0 1 0))
 
-(defpipeline draw-particles ()
-    (g-> #'place-particle #'place-particle-frag))
+(def-g-> draw-particles ()
+  #'place-particle #'place-particle-frag)
 
 ;;----------------------------------------------------------------
 
@@ -162,8 +162,9 @@
 	    (labels ((put (ptr index)
 		       (multiple-value-bind (y x) (floor index size-x)
 			 (let ((qv (elt quad-verts (mod x 4))))
-			   (jungl::vec4-to-foreign ptr (v:x qv) (v:y qv)
-						   (+ 0s0 x) (+ 0s0 y))))))
+			   (cepl.types.foreign:vec4-to-foreign
+			    ptr (v:x qv) (v:y qv)
+			    (+ 0s0 x) (+ 0s0 y))))))
 	      (across-c-ptr #'put arr))
 	    (make-gpu-array arr)))
 	 (indices (with-c-array

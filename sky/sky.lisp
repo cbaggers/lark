@@ -19,18 +19,18 @@
 (defun-g frag ((tc :vec3) &uniform (tex :sampler-cube))
   (texture tex tc))
 
-(defpipeline skybox () (g-> #'vert #'frag))
+(def-g-> skybox () #'vert #'frag)
 
 (defun render-sky ()
   (when *sky-enabled*
     (gl:depth-func :lequal)
     (with-viewport (current-viewport)
       (using-camera *current-camera*
-	(let* ((transform (jungl.space:get-transform
+	(let* ((transform (cepl.space:get-transform
 			   *world-space*
 			   (cepl.camera.base::base-camera-space ccam)))
 	       (no-translate (m4:from-mat3 (m4:to-mat3 transform)))
-	       (to-clip (jungl.space:get-transform
+	       (to-clip (cepl.space:get-transform
 			 (cepl.camera.base::base-camera-space (eye-ccam *current-camera*))
 			 *clip-space*)))
 	  (map-g #'skybox *skybox-stream*
