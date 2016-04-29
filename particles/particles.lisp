@@ -9,11 +9,11 @@
 		:element-type :half-vec3))
 
 (deftclass particle-gbuffer
-  (positions (make-texture *starting-positions*
-			   :element-type :rgb32f))
+  (positions (sample (make-texture *starting-positions*
+				   :element-type :rgb32f)))
   (positions-fbo nil)
-  (velocities (make-texture *starting-velocities*
-			    :element-type :rgb16f))
+  (velocities (sample (make-texture *starting-velocities*
+				    :element-type :rgb16f)))
   (velocities-fbo nil))
 
 (deftclass (particle-system (:constructor %make-particle-system))
@@ -26,13 +26,17 @@
     (let ((front (particle-system-front-gbuffer result))
 	  (back (particle-system-back-gbuffer result)))
       (setf (particle-gbuffer-positions-fbo front)
-	    (make-fbo `(:c ,(particle-gbuffer-positions front)))
+	    (make-fbo `(0 ,(sampler-texture
+			    (particle-gbuffer-positions front))))
 	    (particle-gbuffer-velocities-fbo front)
-	    (make-fbo `(:c ,(particle-gbuffer-velocities front))))
+	    (make-fbo `(0 ,(sampler-texture
+			    (particle-gbuffer-velocities front)))))
       (setf (particle-gbuffer-positions-fbo back)
-	    (make-fbo `(:c ,(particle-gbuffer-positions back)))
+	    (make-fbo `(0 ,(sampler-texture
+			    (particle-gbuffer-positions back))))
 	    (particle-gbuffer-velocities-fbo back)
-	    (make-fbo `(:c ,(particle-gbuffer-velocities back))))
+	    (make-fbo `(0 ,(sampler-texture
+			    (particle-gbuffer-velocities back)))))
       result)))
 
 (defun reset-particle-system (sys)
@@ -67,8 +71,9 @@
 			     :element-type :vec3)))
       (labels ((init (ptr x y)
 		 (declare (ignore x y))
-		 (cepl.types.foreign:vec3-to-foreign
-		  ptr (- (random 20.0) 10) (- (random 20.0) 10) 0s0)))
+		 (setf (cffi:mem-aref ptr :float 0) (- (random 20.0) 10)
+		       (cffi:mem-aref ptr :float 1) (- (random 20.0) 10)
+		       (cffi:mem-aref ptr :float 2) 0s0)))
 	(setf *starting-positions* (across-c-ptr #'init arr))))
     t))
 
@@ -94,7 +99,7 @@
 				     (velocities :sampler-2d))
   (let ((position (texture positions tex-coord))
 	(velocity (texture velocities tex-coord)))
-    (* (normalize (- (v! 0 0 -20 0) position)) 0.0001)))
+    (* (normalize (- (v! 0 0 -20 0) position)) 0.00001)))
 
 (def-g-> update-velocities ()
   #'particle-vert #'update-particle-velocities)
@@ -162,9 +167,10 @@
 	    (labels ((put (ptr index)
 		       (multiple-value-bind (y x) (floor index size-x)
 			 (let ((qv (elt quad-verts (mod x 4))))
-			   (cepl.types.foreign:vec4-to-foreign
-			    ptr (v:x qv) (v:y qv)
-			    (+ 0s0 x) (+ 0s0 y))))))
+			   (setf (cffi:mem-aref ptr :float 0) (v:x qv)
+				 (cffi:mem-aref ptr :float 1) (v:y qv)
+				 (cffi:mem-aref ptr :float 2) (+ 0s0 x)
+				 (cffi:mem-aref ptr :float 3) (+ 0s0 y))))))
 	      (across-c-ptr #'put arr))
 	    (make-gpu-array arr)))
 	 (indices (with-c-array
