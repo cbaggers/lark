@@ -31,11 +31,11 @@
   t)
 
 (defmethod print-object ((object mesh) stream)
-  (format stream "#<lark-mesh :verts ~s>"
+  (format stream "#<assurance-mesh :verts ~s>"
 	  (buffer-stream-length (mesh-stream object))))
 
 (defmethod print-object ((object texture) stream)
-  (format stream "#<lark-texture :dimensions ~s>"
+  (format stream "#<assurance-texture :dimensions ~s>"
 	  (cepl:dimensions
 	   (cepl:texref
 	    (texture-cepl-texture object)))))
@@ -67,7 +67,7 @@
 				       :index-array index-gpu-array
 				       :retain-arrays t)
      :textures textures
-     :samplers (mapcar #'sample textures))))
+     :samplers (mapcar #'sample (mapcar #'texture-cepl-texture textures)))))
 
 (defun a-mesh->indicies-gpu-array (a-mesh)
   (cepl:make-gpu-array
@@ -95,11 +95,11 @@
       (or (gethash tex-filename texture-cache)
 	  (let ((tex (make-texture
 		      :cepl-texture (cepl.devil:load-image-to-texture filepath)
-		      :type (a-tex-type-name->lark-tex-type-name a-tex-type))))
+		      :type (a-tex-type-name->assurance-tex-type-name a-tex-type))))
 	    (setf (gethash tex-filename texture-cache) tex)
 	    tex)))))
 
-(defun a-tex-type-name->lark-tex-type-name (name)
+(defun a-tex-type-name->assurance-tex-type-name (name)
   (let ((mapping '((:ai-texture-type-none . :none)
 		   (:ai-texture-type-diffuse . :diffuse)
 		   (:ai-texture-type-specular . :specular)
@@ -114,7 +114,7 @@
 		   (:ai-texture-type-reflection . :reflection)
 		   (:ai-texture-type-unknown . :unknown))))
     (or (cdr (assoc name mapping))
-	(error "Assimp texture type ~s not found in lark's mapping" name))))
+	(error "Assimp texture type ~s not found in assurance's mapping" name))))
 
 (defun a-mesh->vertex-gpu-array (a-mesh)
   (let ((positions (assimp:vertices a-mesh))

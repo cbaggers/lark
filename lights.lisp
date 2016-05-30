@@ -1,4 +1,4 @@
-(in-package #:lark)
+(in-package #:assurance)
 
 (defparameter *ambient-intensity* 0.2)
 

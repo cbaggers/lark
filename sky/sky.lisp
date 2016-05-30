@@ -1,8 +1,8 @@
-(in-package :lark)
+(in-package :assurance)
 
 (defvar *sky-enabled* nil)
 (defvar *skybox-stream* nil)
-(defvar *sky-cube-texture* nil)
+(defvar *sky-cube-sampler* nil)
 
 (defun enable-sky ()
   (setf *sky-enabled* t))
@@ -21,27 +21,26 @@
 
 (def-g-> skybox () #'vert #'frag)
 
-(defun render-sky ()
+(defun render-sky (camera)
   (when *sky-enabled*
     (gl:depth-func :lequal)
-    (with-viewport (current-viewport)
-      (using-camera *current-camera*
-	(let* ((transform (cepl.space:get-transform
-			   *world-space*
-			   (cepl.camera.base::base-camera-space ccam)))
-	       (no-translate (m4:from-mat3 (m4:to-mat3 transform)))
-	       (to-clip (cepl.space:get-transform
-			 (cepl.camera.base::base-camera-space (eye-ccam *current-camera*))
-			 *clip-space*)))
-	  (map-g #'skybox *skybox-stream*
-		 :tex *sky-cube-texture*
-		 :to-cam-space (m4:* to-clip no-translate)))))
+    (using-camera camera
+      (let* ((transform (cepl.space:get-transform
+			 *world-space*
+			 (cepl.camera.base::base-camera-space camera)))
+	     (no-translate (m4:from-mat3 (m4:to-mat3 transform)))
+	     (to-clip (cepl.space:get-transform
+		       (cepl.camera.base::base-camera-space camera)
+		       *clip-space*)))
+	(map-g #'skybox *skybox-stream*
+	       :tex *sky-cube-sampler*
+	       :to-cam-space (m4:* to-clip no-translate))))
     (gl:depth-func :less)))
 
 (defun make-cubemap-tex (&rest paths)
   (with-c-arrays (ca (mapcar (lambda (p)
                                (cepl.devil:load-image-to-c-array
-                                (path-relative-to-lark p)))
+                                (path p)))
                              paths))
     (make-texture ca :element-type :rgb8 :cubes t)))
 
@@ -54,13 +53,14 @@
 	       :element-type :ushort)))
     (setf *skybox-stream*
 	  (make-buffer-stream data :index-array ind :retain-arrays t)))
-  (setf *sky-cube-texture*
-	(make-cubemap-tex
-	 "./sky/default-tex/left.png"
-	 "./sky/default-tex/right.png"
-	 "./sky/default-tex/up.png"
-	 "./sky/default-tex/down.png"
-	 "./sky/default-tex/front.png"
-	 "./sky/default-tex/back.png")))
+  (setf *sky-cube-sampler*
+	(sample
+	 (make-cubemap-tex
+	  "./sky/default-tex/left.png"
+	  "./sky/default-tex/right.png"
+	  "./sky/default-tex/up.png"
+	  "./sky/default-tex/down.png"
+	  "./sky/default-tex/front.png"
+	  "./sky/default-tex/back.png"))))
 
 (push #'init-sky-data *on-engine-init*)

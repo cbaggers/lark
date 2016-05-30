@@ -12,29 +12,15 @@
 	   :model-filepath :model-meshes :texture
 	   :uv :normal))
 
-(defpackage #:lark
+(defpackage #:assurance
   (:import-from :rtg-math.projection :perspective)
   (:import-from :yaksha :uv :normal :normal)
-  (:use #:cl #:temporal-functions #:cepl
+  (:import-from #:cepl.camera
+		:export :make-camera :in-space :fov
+		:cam->clip :x->cam :using-camera :camera-pos :camera-rot)
+  (:use #:cl #:temporal-functions #:cepl #:named-readtables
 	#:varjo-lang #:rtg-math #:skitter.sdl2.keys
 	#:skitter.sdl2.mouse-buttons
-	#:structy-defclass))
-
-(in-package #:lark)
-
-(defun %run-session ()
-  #+darwin
-  (let ((extra-package-dirs '("/opt/local/lib/" "/usr/local/")))
-    (mapcar
-     (lambda (raw-path)
-       (let ((port-dir (cl-fad:directory-exists-p raw-path)))
-         (when (and port-dir
-                    (not (member port-dir cffi:*foreign-library-directories*)))
-           (push port-dir cffi:*foreign-library-directories*))))
-     extra-package-dirs))
-  (let (#+linux
-        (style swank::*communication-style*)
-        #-linux
-        (style nil))
-    (cepl.host:set-primary-thread-and-run
-     (lambda () (swank:create-server :style style :dont-close t)))))
+	#:structy-defclass)
+)
+;; :near :far :perspective
