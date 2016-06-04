@@ -13,44 +13,86 @@
   (make-thing :model (yaksha:load-model filepath)))
 
 ;;----------------------------------------------------------------------
+;; GBuffer
+
+(deftclass (gbuffer (:constructor %make-gbuffer))
+  (fbo (error "") :type fbo)
+  (pos-sampler (error "") :type sampler)
+  (norm-sampler (error "") :type sampler)
+  (diff-spec-sampler (error "") :type sampler))
+
+(defun make-gbuffer ()
+  ;; positions normals albedo specular
+  (let* ((dim (viewport-dimensions (current-viewport)))
+	 (fbo (make-fbo `(0 :dimensions ,dim :element-type :rgb16f)
+			`(1 :dimensions ,dim :element-type :rgb16f)
+			`(2 :dimensions ,dim :element-type :rgba8)
+			:d)))
+    (%make-gbuffer
+     :fbo fbo
+     :pos-sampler (sample (attachment-tex fbo 0))
+     :norm-sampler (sample (attachment-tex fbo 1))
+     :diff-spec-sampler (sample (attachment-tex fbo 2)))))
+
+(defvar *gb* nil)
+
+(defun get-gbuffer ()
+  (or *gb* (setf *gb* (make-gbuffer))))
+
+;;----------------------------------------------------------------------
 ;; Shader pipeline
 
-(deftclass gbuffer
-  (front (error "") :type fbo)
-  (back (error "") :type fbo))
+(defun-g geom-vert ((vert yaksha:vertex) &uniform (model-space vec-space))
+  (values (in *clip-space* (in model-space (sv! (pos vert) 1.0)))
+	  (in *world-space* (in model-space (sv! (pos vert) 1.0)))
+	  (in *world-space* (in model-space (sv! (yaksha:normal vert) 0.0))))
+  (yaksha:uv vert))
 
-(defun-g first-vert ((vert yaksha:vertex) &uniform (model-space vec-space))
-  (in *clip-space*
-    (values (in model-space (sv! (pos vert) 1.0))
-	    (pos vert)
-	    (yaksha:normal vert)
-	    (yaksha:uv vert))))
+(defun-g geom-frag ((world-pos :vec4) (world-norm :vec4) (uv :vec2)
+		     &uniform (diffuse-tex :sampler-2d) (spec-tex :sampler-2d))
+  (let ((diffuse-color (s~ (texture diffuse-tex uv) :xyz))
+	(specular 0.1;; (s~ (texture spec-tex uv) :x)
+	  ))
+    (values world-pos
+	    world-norm
+	    (v! diffuse-color specular))))
 
-(defun-g first-frag ((norm :vec3) (pos :vec3) (uv :vec2) &uniform (tex :sampler-2d)
-		     (camera-space vec-space) (model-space vec-space)
-		     (light-pos :vec3) (light-intensity :float))
-  (let ((sun-cos-angle-of-incidence
-	 (varjo-lang:clamp
-	  (in camera-space
-	    (varjo-lang:dot (v:normalize (in model-space (sv! norm 0)))
-			    (in *world-space* (sv! *dir-to-sun*))))
-	  0 1))
-	(diffuse-color (varjo-lang:texture tex uv))
-	(light-cos-angle-of-incidence
-	 (varjo-lang:clamp
-	  (in model-space
-	    (varjo-lang:dot (v:normalize (sv! norm 0))
-			    (sv! (v:normalize
-				  (- (in *world-space* (sv! light-pos 0))
-				     (v! pos 0))))))
-	  0 1)))
-    (+ (* diffuse-color *ambient-intensity*)
-       (* light-intensity diffuse-color light-cos-angle-of-incidence)
-       ;;(* *sun-intensity* diffuse-color sun-cos-angle-of-incidence)
-       )))
+(def-g-> drender-geom-pass ()
+  #'geom-vert #'geom-frag)
 
-(def-g-> first-render ()
-  #'first-vert #'first-frag)
+;; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+(defun-g pass-through-vert ((vert g-pt))
+  (values (v! (pos vert) 1)
+	  (tex vert)))
+
+;; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+(defun-g defered-lighting-frag ((tc :vec2) &uniform
+				(world-pos-sampler :sampler-2d)
+				(world-norm-sampler :sampler-2d)
+				(diff-and-spec-sampler :sampler-2d)
+				(camera-space vec-space)
+				(light-pos :vec3)
+				(light-intensity :float))
+  (let* ((diff-n-spec (texture diff-and-spec-sampler tc))
+	 (diffuse (s~ diff-n-spec :xyz))
+	 (specular (s~ diff-n-spec :w))
+	 (world-pos (texture world-pos-sampler tc))
+	 (world-norm (v:normalize (texture world-norm-sampler tc)))
+	 (light-cos-angle-of-incidence
+	  (varjo-lang:clamp
+	   (varjo-lang:dot world-norm
+			   (v:normalize
+			    (- (v! light-pos 0)
+			       (v! (s~ world-pos :xyz) 0))))
+	   0 1)))
+
+    (+ (* diffuse *ambient-intensity*)
+       (* light-intensity diffuse light-cos-angle-of-incidence))))
+
+(def-g-> drender-lighting-pass ()
+  #'pass-through-vert #'defered-lighting-frag)
 
 ;;----------------------------------------------------------------------
 ;;
@@ -63,17 +105,25 @@
   thing)
 
 (defun render-thing (thing camera)
-  (let ((light-pos
-	 (v! (* (cos (/ (now) 600)) 50)
-	     0
-	     (+ -20 (* (sin (/ (now) 600)) 50)))))
-    (using-camera camera
-      (loop :for mesh :in (yaksha:model-meshes (model thing)) :do
-	 (map-g #'first-render (yaksha:mesh-stream mesh)
-		:model-space (in-space thing)
-		:camera-space (cepl.camera.base::base-camera-space camera)
-		:tex (first (yaksha:mesh-samplers mesh))
-		:light-pos light-pos
-		:light-intensity 0.5)))))
+  (let ((gb (get-gbuffer)))
+    (with-fbo-bound ((gbuffer-fbo gb))
+      (clear)
+      (using-camera camera
+	(loop :for mesh :in (yaksha:model-meshes (model thing)) :do
+	   (map-g #'drender-geom-pass (yaksha:mesh-stream mesh)
+		  :model-space (in-space thing)
+		  :diffuse-tex (first (yaksha:mesh-samplers mesh))
+		  :spec-tex nil))))
+    (let ((light-pos
+	   (v! (* (cos (/ (now) 600)) 50)
+	       0
+	       (+ -20 (* (sin (/ (now) 600)) 50)))))
+      (map-g #'drender-lighting-pass *quad-stream*
+	     :world-pos-sampler (gbuffer-pos-sampler gb)
+	     :world-norm-sampler (gbuffer-norm-sampler gb)
+	     :diff-and-spec-sampler (gbuffer-diff-spec-sampler gb)
+	     :camera-space (cepl.camera.base::base-camera-space camera)
+	     :light-pos light-pos
+	     :light-intensity 0.5))))
 
 ;;----------------------------------------------------------------------
