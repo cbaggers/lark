@@ -39,7 +39,7 @@
 
 (defun make-cubemap-tex (&rest paths)
   (with-c-arrays (ca (mapcar (lambda (p)
-                               (cepl.devil:load-image-to-c-array
+                               (cepl.sdl2-image:load-image-to-c-array
                                 (path p)))
                              paths))
     (make-texture ca :element-type :rgb8 :cubes t)))

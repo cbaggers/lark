@@ -4,9 +4,10 @@
 (cepl:defstruct-g vertex
   (position :vec3 :accessor pos)
   (normal :vec3 :accessor normal)
+  (tangent :vec3 :accessor tangent)
   (tex-coords :vec2 :accessor uv))
 
-(defstruct texture
+(defstruct (y-texture (:conc-name y-texture-))
   cepl-texture
   type)
 
@@ -26,19 +27,19 @@
   (mapcar #'free (mesh-textures object))
   t)
 
-(defmethod free ((object texture))
-  (cepl:free-texture (texture-cepl-texture object))
+(defmethod free ((object y-texture))
+  (cepl:free-texture (y-texture-cepl-texture object))
   t)
 
 (defmethod print-object ((object mesh) stream)
   (format stream "#<assurance-mesh :verts ~s>"
 	  (buffer-stream-length (mesh-stream object))))
 
-(defmethod print-object ((object texture) stream)
+(defmethod print-object ((object y-texture) stream)
   (format stream "#<assurance-texture :dimensions ~s>"
 	  (cepl:dimensions
 	   (cepl:texref
-	    (texture-cepl-texture object)))))
+	    (y-texture-cepl-texture object)))))
 
 ;;----------------------------------------------------------------------
 
@@ -48,8 +49,10 @@
     meshes))
 
 (defun file->scene (filename)
-  (assimp:import-into-lisp filename :processing-flags '(:ai-process-triangulate
-							:ai-process-flip-u-vs)))
+  (assimp:import-into-lisp
+   filename :processing-flags '(:ai-process-triangulate
+				:ai-process-flip-u-vs
+				:ai-process-calc-tangent-space)))
 
 (defun assimp-scene->meshes (a-scene model-filename)
   (let ((materials (assimp:materials a-scene))
@@ -67,7 +70,7 @@
 				       :index-array index-gpu-array
 				       :retain-arrays t)
      :textures textures
-     :samplers (mapcar #'sample (mapcar #'texture-cepl-texture textures)))))
+     :samplers (mapcar #'sample (mapcar #'y-texture-cepl-texture textures)))))
 
 (defun a-mesh->indicies-gpu-array (a-mesh)
   (cepl:make-gpu-array
@@ -93,9 +96,11 @@
     (let ((filepath (cl-fad:merge-pathnames-as-file model-filename
 						    tex-filename)))
       (or (gethash tex-filename texture-cache)
-	  (let ((tex (make-texture
-		      :cepl-texture (cepl.devil:load-image-to-texture filepath)
-		      :type (a-tex-type-name->assurance-tex-type-name a-tex-type))))
+	  (let ((tex (make-y-texture
+		      :cepl-texture (cepl.sdl2-image:load-image-to-texture
+				     filepath)
+		      :type (a-tex-type-name->assurance-tex-type-name
+			     a-tex-type))))
 	    (setf (gethash tex-filename texture-cache) tex)
 	    tex)))))
 
@@ -119,12 +124,14 @@
 (defun a-mesh->vertex-gpu-array (a-mesh)
   (let ((positions (assimp:vertices a-mesh))
 	(normals (assimp:normals a-mesh))
+	(tangets (assimp:tangents a-mesh))
 	(uvs (a-mesh->uvs a-mesh)))
     (assert (= (length positions)
 	       (length normals)
+	       (length tangets)
 	       (length uvs)))
     (cepl:make-gpu-array
-     (map 'list #'list positions normals uvs)
+     (map 'list #'list positions normals tangets uvs)
      :element-type 'vertex)))
 
 (defun a-mesh->uvs (a-mesh)
