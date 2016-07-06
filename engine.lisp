@@ -15,6 +15,7 @@
 	  (map nil #'funcall *on-engine-init*))
     (setf *game-state* (make-game-state))
     (setf *camera* (cepl.camera:make-camera))
+    (setf (viewport-resolution (viewport *camera*)) (v! 1024 768))
     (setf *started* t)))
 
 (defun stop-engine ()
@@ -31,9 +32,10 @@
 (defvar *running* nil)
 
 (defun startup ()
-  (unless (things *game-state*)
-    (push (load-thing "suit/nanosuit.obj")
-	  (things *game-state*))))
+  ;; (unless (things *game-state*)
+  ;;   (push (load-thing "suit/nanosuit.obj")
+  ;; 	  (things *game-state*)))
+  )
 
 (defun step-game ()
   (swap-mouse-move))

@@ -207,9 +207,11 @@
 			 (get-distance-attenuation unormalized-light-vec
 						   light-inv-sqr-att-radius))))
     (* bsdf
+       1
        (saturate (dot normal normalized-light-vec))
        light-color
-       attenuation)))
+       ;;attenuation
+       )))
 
 ;;----------------------------------------------------------------------
 ;; Approach
@@ -245,7 +247,7 @@
   (values world-pos
 	  (* btn-mat (s~ (texture norm-tex uv) :xyz))
 	  (s~ (texture base-tex uv) :xyz)
-	  (s~ (texture mat-tex uv) :xyw)))
+	  (v! (s~ (texture mat-tex uv) :xw) 1)))
 
 
 (def-g-> pack-gbuffer-pass ()
@@ -309,7 +311,7 @@
 	   (v! (* (cos (/ (now) 600)) 50)
 	       0
 	       (+ -20 (* (sin (/ (now) 600)) 50)))))
-      (with-fbo-bound ((post-buff-color-sampler pb))
+      (with-fbo-bound ((post-buff-fbo pb))
 	(clear)
 	(map-g #'pbr-pass *quad-stream*
 	       :wview-dir (v! 0 0 -1)
@@ -322,3 +324,44 @@
 	       :mat-sampler (gbuffer-mat-sampler gb)))
       (map-g #'pbr-post-pass *quad-stream*
 	     :linear-final (post-buff-color-sampler pb)))))
+
+(defun render-thing (thing camera)
+  (let ((gb (get-gbuffer))
+	(pb (get-post-buff)))
+    (using-camera camera
+      (with-fbo-bound ((gbuffer-fbo gb))
+	(clear)
+	(loop :for mesh :in (yaksha:model-meshes (model thing)) :do
+	   (map-g #'pack-gbuffer-pass (yaksha:mesh-stream mesh)
+		  :model-space (in-space thing)
+		  :base-tex (base-sampler thing)
+		  :norm-tex (normal-sampler thing)
+		  :mat-tex (material-sampler thing)))))
+    (let ((light-pos
+	   (v! (* (cos (/ (now) 600)) 50)
+	       0
+	       (+ -20 (* (sin (/ (now) 600)) 50)))))
+      (map-g #'pbr-pass *quad-stream*
+	     :wview-dir (v! 0 0 -1)
+	     :light-origin light-pos
+	     :light-radius 50s0
+	     :light-radiance (v! 0.7 0.7 0.7)
+	     :pos-sampler (gbuffer-pos-sampler gb)
+	     :normal-sampler (gbuffer-norm-sampler gb)
+	     :base-sampler (gbuffer-base-sampler gb)
+	     :mat-sampler (gbuffer-mat-sampler gb)))
+    (map-g #'pbr-post-pass *quad-stream*
+	     :linear-final (post-buff-color-sampler pb))))
+
+;;----------------------------------------------------------------------
+
+(defun-g debug-draw-sampler-frag ((tc :vec2) &uniform (s :sampler-2d))
+  (texture s tc))
+
+(def-g-> debug-draw-sampler ()
+  #'pass-through-vert #'debug-draw-sampler-frag)
+
+(defun draw-sampler (sampler)
+  (cls)
+  (map-g #'debug-draw-sampler *quad-stream* :s sampler)
+  (swap))

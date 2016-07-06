@@ -9,7 +9,8 @@
   :depends-on (#:cepl.sdl2 #:cepl.camera #:cepl.sdl2-image #:cepl.skitter.sdl2
 			   #:classimp #:fn #:named-readtables #:cl-fad
 			   #:temporal-functions #:dendrite #:disposable
-			   #:structy-defclass #:swank.live)
+			   #:structy-defclass #:swank.live
+			   #:filmic-tone-mapping-operators)
   :components ((:file "package")
 
 	       ;; mesh and models
