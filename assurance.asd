@@ -32,6 +32,9 @@
 	       (:file "thing")
 	       (:file "primitives")
 
+	       ;; pbr
+	       (:file "pbr")
+
 	       ;; sky
 	       (:file "sky/sky")
 

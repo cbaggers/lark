@@ -14,9 +14,12 @@
 
 
 (defun load-thing (filepath base-tex-path normal-tex-path mat-tex-path)
-  (let ((base (cepl.sdl2-image:load-image-to-texture base-tex-path))
-	(norm (cepl.sdl2-image:load-image-to-texture normal-tex-path))
-	(mat (cepl.sdl2-image:load-image-to-texture mat-tex-path)))
+  (let ((base (cepl.sdl2-image:load-image-to-texture
+	       base-tex-path :srgb8-alpha8))
+	(norm (cepl.sdl2-image:load-image-to-texture
+	       normal-tex-path :srgb8-alpha8))
+	(mat (cepl.sdl2-image:load-image-to-texture
+	      mat-tex-path :srgb8-alpha8)))
     (make-thing :model (yaksha:load-model filepath)
 		:base-sampler (sample base)
 		:normal-sampler (sample norm)

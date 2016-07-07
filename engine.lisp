@@ -16,6 +16,7 @@
     (setf *game-state* (make-game-state))
     (setf *camera* (cepl.camera:make-camera))
     (setf (viewport-resolution (viewport *camera*)) (v! 1024 768))
+    (skitter:listen-to λ(window-size-callback _ _1) (skitter:window 0) :size)
     (setf *started* t)))
 
 (defun stop-engine ()
@@ -32,10 +33,17 @@
 (defvar *running* nil)
 
 (defun startup ()
-  ;; (unless (things *game-state*)
-  ;;   (push (load-thing "suit/nanosuit.obj")
-  ;; 	  (things *game-state*)))
-  )
+  (unless (things *game-state*)
+    (push (load-thing "/home/baggers/Code/lisp/lark/media/GnawTheGoblin/Goblin_Gnaw.FBX"
+		      "/home/baggers/Code/lisp/lark/media/GnawTheGoblin/Goblin_Gnaw_Low_Diffuse.tga"
+		      "/home/baggers/Code/lisp/lark/media/GnawTheGoblin/Goblin_Gnaw_Low_Normal.tga"
+		      "/home/baggers/Code/lisp/lark/media/GnawTheGoblin/Goblin_Gnaw_Low_Metalic.tga")
+	  (things *game-state*))
+    (setf (pos (first (things *game-state*))) (v! 0 0 -120))))
+
+(defun window-size-callback (event timestamp)
+  (declare (ignore timestamp))
+  (reshape (skitter:size-2d-vec event)))
 
 (defun step-game ()
   (swap-mouse-move))

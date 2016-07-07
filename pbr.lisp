@@ -20,9 +20,18 @@
   (color-sampler (error "") :type sampler)
   (depth-sampler (error "") :type sampler))
 
-(defun make-gbuffer ()
+(defmethod free ((gb gbuffer))
+  ;;(free (gbuffer-fbo gbuff))
+  (free (sampler-texture (gbuffer-pos-sampler gb)))
+  (free (sampler-texture (gbuffer-norm-sampler gb)))
+  (free (sampler-texture (gbuffer-base-sampler gb)))
+  (free (sampler-texture (gbuffer-mat-sampler gb)))
+  gb)
+
+(defun make-gbuffer (&optional dimensions)
   ;; positions normals albedo specular
-  (let* ((dim (viewport-dimensions (current-viewport)))
+  (assert (listp dimensions))
+  (let* ((dim (or dimensions (viewport-dimensions (current-viewport))))
 	 (fbo (make-fbo `(0 :dimensions ,dim :element-type :rgb16f)
 			`(1 :dimensions ,dim :element-type :rgb16f)
 			`(2 :dimensions ,dim :element-type :rgb8)
@@ -35,8 +44,14 @@
      :base-sampler (sample (attachment-tex fbo 2))
      :mat-sampler (sample (attachment-tex fbo 3)))))
 
-(defun make-post-buff ()
-  (let* ((dim (viewport-dimensions (current-viewport)))
+(defun resize-gbuffers (dimensions)
+  (setf *gb* (make-gbuffer dimensions))
+  (setf *post-buff* (make-post-buff dimensions))
+  t)
+
+(defun make-post-buff (&optional dimensions)
+  (assert (listp dimensions))
+  (let* ((dim (or dimensions (viewport-dimensions (current-viewport))))
 	 (fbo (make-fbo `(0 :dimensions ,dim :element-type :rgb16f)
 			:d)))
     (%make-post-buff :fbo fbo
@@ -85,9 +100,6 @@
 	 ,@body))))
 
 ;;----------------------------------------------------------------------
-
-(defun-g saturate ((val :float))
-  (clamp val 0s0 1s0))
 
 ;; phong (lambertian) diffuse term
 (defun-g lambertian-diffuse ()
@@ -295,39 +307,39 @@
 
 ;;----------------------------------------------------------------------
 
-(defun render-thing (thing camera)
-  (let ((gb (get-gbuffer))
-	(pb (get-post-buff)))
-    (with-fbo-bound ((gbuffer-fbo gb))
-      (clear)
-      (using-camera camera
-	(loop :for mesh :in (yaksha:model-meshes (model thing)) :do
-	   (map-g #'pack-gbuffer-pass (yaksha:mesh-stream mesh)
-		  :model-space (in-space thing)
-		  :base-tex (base-sampler thing)
-		  :norm-tex (normal-sampler thing)
-		  :mat-tex (material-sampler thing)))))
-    (let ((light-pos
-	   (v! (* (cos (/ (now) 600)) 50)
-	       0
-	       (+ -20 (* (sin (/ (now) 600)) 50)))))
-      (with-fbo-bound ((post-buff-fbo pb))
-	(clear)
-	(map-g #'pbr-pass *quad-stream*
-	       :wview-dir (v! 0 0 -1)
-	       :light-origin light-pos
-	       :light-radius 50s0
-	       :light-radiance (v! 0.7 0.7 0.7)
-	       :pos-sampler (gbuffer-pos-sampler gb)
-	       :normal-sampler (gbuffer-norm-sampler gb)
-	       :base-sampler (gbuffer-base-sampler gb)
-	       :mat-sampler (gbuffer-mat-sampler gb)))
-      (map-g #'pbr-post-pass *quad-stream*
-	     :linear-final (post-buff-color-sampler pb)))))
+;; (defun render-thing (thing camera)
+;;   (let ((gb (get-gbuffer))
+;; 	(pb (get-post-buff)))
+;;     (with-fbo-bound ((gbuffer-fbo gb))
+;;       (clear)
+;;       (using-camera camera
+;; 	(loop :for mesh :in (yaksha:model-meshes (model thing)) :do
+;; 	   (map-g #'pack-gbuffer-pass (yaksha:mesh-stream mesh)
+;; 		  :model-space (in-space thing)
+;; 		  :base-tex (base-sampler thing)
+;; 		  :norm-tex (normal-sampler thing)
+;; 		  :mat-tex (material-sampler thing)))))
+;;     (let ((light-pos
+;; 	   (v! (* (cos (/ (now) 600)) 50)
+;; 	       0
+;; 	       (+ -20 (* (sin (/ (now) 600)) 50)))))
+;;       (with-fbo-bound ((post-buff-fbo pb))
+;; 	(clear)
+;; 	(map-g #'pbr-pass *quad-stream*
+;; 	       :wview-dir (v! 0 0 -1)
+;; 	       :light-origin light-pos
+;; 	       :light-radius 50s0
+;; 	       :light-radiance (v! 0.7 0.7 0.7)
+;; 	       :pos-sampler (gbuffer-pos-sampler gb)
+;; 	       :normal-sampler (gbuffer-norm-sampler gb)
+;; 	       :base-sampler (gbuffer-base-sampler gb)
+;; 	       :mat-sampler (gbuffer-mat-sampler gb)))
+;;       (map-g #'pbr-post-pass *quad-stream*
+;; 	     :linear-final (post-buff-color-sampler pb)))))
 
 (defun render-thing (thing camera)
   (let ((gb (get-gbuffer))
-	(pb (get-post-buff)))
+  	(pb (get-post-buff)))
     (using-camera camera
       (with-fbo-bound ((gbuffer-fbo gb))
 	(clear)
@@ -337,21 +349,23 @@
 		  :base-tex (base-sampler thing)
 		  :norm-tex (normal-sampler thing)
 		  :mat-tex (material-sampler thing)))))
-    (let ((light-pos
-	   (v! (* (cos (/ (now) 600)) 50)
-	       0
-	       (+ -20 (* (sin (/ (now) 600)) 50)))))
-      (map-g #'pbr-pass *quad-stream*
-	     :wview-dir (v! 0 0 -1)
-	     :light-origin light-pos
-	     :light-radius 50s0
-	     :light-radiance (v! 0.7 0.7 0.7)
-	     :pos-sampler (gbuffer-pos-sampler gb)
-	     :normal-sampler (gbuffer-norm-sampler gb)
-	     :base-sampler (gbuffer-base-sampler gb)
-	     :mat-sampler (gbuffer-mat-sampler gb)))
-    (map-g #'pbr-post-pass *quad-stream*
-	     :linear-final (post-buff-color-sampler pb))))
+    pb
+    ;; (let ((light-pos
+    ;; 	   (v! (* (cos (/ (now) 600)) 50)
+    ;; 	       0
+    ;; 	       (+ -20 (* (sin (/ (now) 600)) 50)))))
+    ;;   (map-g #'pbr-pass *quad-stream*
+    ;; 	     :wview-dir (v! 0 0 -1)
+    ;; 	     :light-origin light-pos
+    ;; 	     :light-radius 50s0
+    ;; 	     :light-radiance (v! 0.7 0.7 0.7)
+    ;; 	     :pos-sampler (gbuffer-pos-sampler gb)
+    ;; 	     :normal-sampler (gbuffer-norm-sampler gb)
+    ;; 	     :base-sampler (gbuffer-base-sampler gb)
+    ;; 	     :mat-sampler (gbuffer-mat-sampler gb)))
+    ;; (map-g #'pbr-post-pass *quad-stream*
+    ;; 	   :linear-final (post-buff-color-sampler pb))
+    ))
 
 ;;----------------------------------------------------------------------
 
@@ -365,3 +379,15 @@
   (cls)
   (map-g #'debug-draw-sampler *quad-stream* :s sampler)
   (swap))
+
+
+;; (setf (pos (first (things *game-state*))) (v! 0 0 -120))
+
+;;----------------------------------------------------------------------
+
+(defun reshape (new-resolution)
+  (let ((new-resolution (v! (v:x new-resolution) (v:y new-resolution)))
+	(new-dimensions (list (v:x new-resolution) (v:y new-resolution))))
+    (format t "~%New Resolution: ~a~%" new-resolution)
+    (setf (viewport-resolution (camera-viewport *camera*)) new-resolution)
+    (resize-gbuffers new-dimensions)))

@@ -17,9 +17,10 @@
   (:import-from :yaksha :uv :normal :normal)
   (:import-from #:cepl.camera
 		:export :make-camera :in-space :fov
-		:cam->clip :x->cam :using-camera :camera-pos :camera-rot)
+		:cam->clip :x->cam :using-camera :camera-pos :camera-rot
+		:camera-viewport)
   (:use #:cl #:temporal-functions #:cepl #:named-readtables
 	#:varjo-lang #:rtg-math :rtg-math.base-maths #:skitter.sdl2.keys
 	#:skitter.sdl2.mouse-buttons #:filmic-tone-mapping-operators
-	#:structy-defclass))
+	#:structy-defclass #:nineveh))
 ;; :near :far :perspective
