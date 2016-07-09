@@ -215,15 +215,14 @@
 	 (bsdf (+ (* kd diffuse) (* ks specular)))
 	 ;;
 	 (attenuation-factor 1.0)
-	 (attenuation (* attenuation-factor
-			 (get-distance-attenuation unormalized-light-vec
-						   light-inv-sqr-att-radius))))
+	 (attenuation ;;(* attenuation-factor)
+	  (get-distance-attenuation unormalized-light-vec
+				    light-inv-sqr-att-radius)))
     (* bsdf
-       1
-       (saturate (dot normal normalized-light-vec))
-       light-color
+       ;;(saturate (dot normal normalized-light-vec))
+     ;;light-color
        ;;attenuation
-       )))
+       1)))
 
 ;;----------------------------------------------------------------------
 ;; Approach
@@ -286,10 +285,11 @@
 	 (roughness (y material))
 	 (ao (z material))
 	 (light-inv-sqr-att-radius light-radius))
-    (punctual-light-luminance
-     wpos wnormal wview-dir
-     base-color roughness metallic ao
-     light-origin light-radiance light-inv-sqr-att-radius)))
+    (+ (* 0.1 base-color)
+       (punctual-light-luminance
+	wpos wnormal wview-dir
+	base-color roughness metallic ao
+	light-origin light-radiance light-inv-sqr-att-radius))))
 
 (def-g-> pbr-pass ()
   #'pass-through-vert my-pbr-analytic-light-frag)
@@ -307,65 +307,34 @@
 
 ;;----------------------------------------------------------------------
 
-;; (defun render-thing (thing camera)
-;;   (let ((gb (get-gbuffer))
-;; 	(pb (get-post-buff)))
-;;     (with-fbo-bound ((gbuffer-fbo gb))
-;;       (clear)
-;;       (using-camera camera
-;; 	(loop :for mesh :in (yaksha:model-meshes (model thing)) :do
-;; 	   (map-g #'pack-gbuffer-pass (yaksha:mesh-stream mesh)
-;; 		  :model-space (in-space thing)
-;; 		  :base-tex (base-sampler thing)
-;; 		  :norm-tex (normal-sampler thing)
-;; 		  :mat-tex (material-sampler thing)))))
-;;     (let ((light-pos
-;; 	   (v! (* (cos (/ (now) 600)) 50)
-;; 	       0
-;; 	       (+ -20 (* (sin (/ (now) 600)) 50)))))
-;;       (with-fbo-bound ((post-buff-fbo pb))
-;; 	(clear)
-;; 	(map-g #'pbr-pass *quad-stream*
-;; 	       :wview-dir (v! 0 0 -1)
-;; 	       :light-origin light-pos
-;; 	       :light-radius 50s0
-;; 	       :light-radiance (v! 0.7 0.7 0.7)
-;; 	       :pos-sampler (gbuffer-pos-sampler gb)
-;; 	       :normal-sampler (gbuffer-norm-sampler gb)
-;; 	       :base-sampler (gbuffer-base-sampler gb)
-;; 	       :mat-sampler (gbuffer-mat-sampler gb)))
-;;       (map-g #'pbr-post-pass *quad-stream*
-;; 	     :linear-final (post-buff-color-sampler pb)))))
-
 (defun render-thing (thing camera)
   (let ((gb (get-gbuffer))
   	(pb (get-post-buff)))
     (using-camera camera
-      (with-fbo-bound ((gbuffer-fbo gb))
-	(clear)
+      (with-fbo-bound ((gbuffer-fbo gb) )
+      	(clear)
 	(loop :for mesh :in (yaksha:model-meshes (model thing)) :do
 	   (map-g #'pack-gbuffer-pass (yaksha:mesh-stream mesh)
 		  :model-space (in-space thing)
 		  :base-tex (base-sampler thing)
 		  :norm-tex (normal-sampler thing)
 		  :mat-tex (material-sampler thing)))))
-    pb
-    ;; (let ((light-pos
-    ;; 	   (v! (* (cos (/ (now) 600)) 50)
-    ;; 	       0
-    ;; 	       (+ -20 (* (sin (/ (now) 600)) 50)))))
-    ;;   (map-g #'pbr-pass *quad-stream*
-    ;; 	     :wview-dir (v! 0 0 -1)
-    ;; 	     :light-origin light-pos
-    ;; 	     :light-radius 50s0
-    ;; 	     :light-radiance (v! 0.7 0.7 0.7)
-    ;; 	     :pos-sampler (gbuffer-pos-sampler gb)
-    ;; 	     :normal-sampler (gbuffer-norm-sampler gb)
-    ;; 	     :base-sampler (gbuffer-base-sampler gb)
-    ;; 	     :mat-sampler (gbuffer-mat-sampler gb)))
-    ;; (map-g #'pbr-post-pass *quad-stream*
-    ;; 	   :linear-final (post-buff-color-sampler pb))
-    ))
+    (let* ((time (/ (now) 600))
+	   (light-pos
+	    (v:+ (v! 0 0 0)
+		 (v3:*s (v! (cos time) 0 (* (sin time)))
+			100s0))))
+      (map-g #'pbr-pass *quad-stream*
+    	     :wview-dir (v! 0 0 -1)
+    	     :light-origin light-pos
+    	     :light-radius 0s0
+    	     :light-radiance (v! 0.7 0.7 0.7)
+    	     :pos-sampler (gbuffer-pos-sampler gb)
+    	     :normal-sampler (gbuffer-norm-sampler gb)
+    	     :base-sampler (gbuffer-base-sampler gb)
+    	     :mat-sampler (gbuffer-mat-sampler gb)))
+    (map-g #'pbr-post-pass *quad-stream*
+    	   :linear-final (post-buff-color-sampler pb))))
 
 ;;----------------------------------------------------------------------
 
