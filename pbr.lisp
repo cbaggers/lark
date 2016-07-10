@@ -33,10 +33,10 @@
   (assert (listp dimensions))
   (let* ((dim (or dimensions (viewport-dimensions (current-viewport))))
 	 (fbo (make-fbo `(0 :dimensions ,dim :element-type :rgb16f)
-			`(1 :dimensions ,dim :element-type :rgb16f)
-			`(2 :dimensions ,dim :element-type :rgb8)
-			`(3 :dimensions ,dim :element-type :rgb8)
-			:d)))
+	   		`(1 :dimensions ,dim :element-type :rgb16f)
+	   		`(2 :dimensions ,dim :element-type :rgb8)
+	   		`(3 :dimensions ,dim :element-type :rgb8)
+	   		`(:d :dimensions ,dim))))
     (%make-gbuffer
      :fbo fbo
      :pos-sampler (sample (attachment-tex fbo 0))
@@ -53,7 +53,7 @@
   (assert (listp dimensions))
   (let* ((dim (or dimensions (viewport-dimensions (current-viewport))))
 	 (fbo (make-fbo `(0 :dimensions ,dim :element-type :rgb16f)
-			:d)))
+			`(:d :dimensions ,dim))))
     (%make-post-buff :fbo fbo
 		     :color-sampler (sample (attachment-tex fbo 0))
 		     :depth-sampler (sample (attachment-tex fbo :d)))))
@@ -218,11 +218,12 @@
 	 (attenuation ;;(* attenuation-factor)
 	  (get-distance-attenuation unormalized-light-vec
 				    light-inv-sqr-att-radius)))
-    (* bsdf
-       ;;(saturate (dot normal normalized-light-vec))
-     ;;light-color
-       ;;attenuation
-       1)))
+    (+ (* base-color 0.3)
+       (* bsdf
+	  ;;(saturate (dot normal normalized-light-vec))
+	  ;;light-color
+	  ;;attenuation
+	  1))))
 
 ;;----------------------------------------------------------------------
 ;; Approach
@@ -250,15 +251,14 @@
 	    btn-mat
 	    (yaksha:uv vert))))
 
-
 (defun-g pack-gbuffer-frag ((world-pos :vec4) (btn-mat :mat3) (uv :vec2)
 			    &uniform (base-tex :sampler-2d)
 			    (norm-tex :sampler-2d)
 			    (mat-tex :sampler-2d))
   (values world-pos
-	  (* btn-mat (s~ (texture norm-tex uv) :xyz))
-	  (s~ (texture base-tex uv) :xyz)
-	  (v! (s~ (texture mat-tex uv) :xw) 1)))
+          (* btn-mat (s~ (texture norm-tex uv) :xyz))
+  	  (s~ (texture base-tex uv) :xyz)
+  	  (v! (s~ (texture mat-tex uv) :xw) 1)))
 
 
 (def-g-> pack-gbuffer-pass ()
@@ -308,38 +308,44 @@
 ;;----------------------------------------------------------------------
 
 (defun render-thing (thing camera)
-  (let ((gb (get-gbuffer))
-  	(pb (get-post-buff)))
+  (let ((time (/ (now) 3000))
+	(gb (get-gbuffer))
+  	;;(pb (get-post-buff))
+	)
+    (setf (rot gnaw) (q:from-fixed-angles (sin time) (cos time) 0s0))
     (using-camera camera
-      (with-fbo-bound ((gbuffer-fbo gb) )
+      (with-fbo-bound ((gbuffer-fbo gb))
       	(clear)
 	(loop :for mesh :in (yaksha:model-meshes (model thing)) :do
 	   (map-g #'pack-gbuffer-pass (yaksha:mesh-stream mesh)
 		  :model-space (in-space thing)
 		  :base-tex (base-sampler thing)
 		  :norm-tex (normal-sampler thing)
-		  :mat-tex (material-sampler thing)))))
-    (let* ((time (/ (now) 600))
-	   (light-pos
-	    (v:+ (v! 0 0 0)
-		 (v3:*s (v! (cos time) 0 (* (sin time)))
-			100s0))))
-      (map-g #'pbr-pass *quad-stream*
-    	     :wview-dir (v! 0 0 -1)
-    	     :light-origin light-pos
-    	     :light-radius 0s0
-    	     :light-radiance (v! 0.7 0.7 0.7)
-    	     :pos-sampler (gbuffer-pos-sampler gb)
-    	     :normal-sampler (gbuffer-norm-sampler gb)
-    	     :base-sampler (gbuffer-base-sampler gb)
-    	     :mat-sampler (gbuffer-mat-sampler gb)))
-    (map-g #'pbr-post-pass *quad-stream*
-    	   :linear-final (post-buff-color-sampler pb))))
+		  :mat-tex (material-sampler thing))))
+      (let* ((time (/ (now) 600))
+	     (light-pos
+	      (v:+ (v! 0 0 0)
+		   (v3:*s (v! (cos time) 0 (* (sin time)))
+			  100s0))))
+	;; (with-fbo-bound ((post-buff-fbo pb))
+	;;   (clear))
+	(map-g #'pbr-pass *quad-stream*
+	       :wview-dir (v! 0 0 -1)
+	       :light-origin light-pos
+	       :light-radius 200s0
+	       :light-radiance (v! 0.7 0.7 0.7)
+	       :pos-sampler (gbuffer-pos-sampler gb)
+	       :normal-sampler (gbuffer-norm-sampler gb)
+	       :base-sampler (gbuffer-base-sampler gb)
+	       :mat-sampler (gbuffer-mat-sampler gb)))
+      ;; (map-g #'pbr-post-pass *quad-stream*
+      ;; 	     :linear-final (post-buff-color-sampler pb))
+      )))
 
 ;;----------------------------------------------------------------------
 
 (defun-g debug-draw-sampler-frag ((tc :vec2) &uniform (s :sampler-2d))
-  (texture s tc))
+  (texture s tc 0))
 
 (def-g-> debug-draw-sampler ()
   #'pass-through-vert #'debug-draw-sampler-frag)
@@ -349,13 +355,25 @@
   (map-g #'debug-draw-sampler *quad-stream* :s sampler)
   (swap))
 
+(defun-g green-frag ((tc :vec2) &uniform (s :sampler-2d))
+  (v! 0 1 0 1))
+
+(def-g-> green-pass ()
+  #'pass-through-vert #'green-frag)
+
+(defun green ()
+  (map-g #'green-pass *quad-stream*))
 
 ;; (setf (pos (first (things *game-state*))) (v! 0 0 -120))
 
 ;;----------------------------------------------------------------------
 
+(defun down-to-nearest (x n)
+  (* (floor x n) n))
+
 (defun reshape (new-resolution)
-  (let ((new-resolution (v! (v:x new-resolution) (v:y new-resolution)))
+  (let ((new-resolution (v! (down-to-nearest (v:x new-resolution) 8)
+			    (down-to-nearest (v:y new-resolution) 8)))
 	(new-dimensions (list (v:x new-resolution) (v:y new-resolution))))
     (format t "~%New Resolution: ~a~%" new-resolution)
     (setf (viewport-resolution (camera-viewport *camera*)) new-resolution)

@@ -31,14 +31,16 @@
 (defvar *fps* 0)
 
 (defvar *running* nil)
+(defvar gnaw nil)
 
 (defun startup ()
   (unless (things *game-state*)
-    (push (load-thing "/home/baggers/Code/lisp/lark/media/GnawTheGoblin/Goblin_Gnaw.FBX"
-		      "/home/baggers/Code/lisp/lark/media/GnawTheGoblin/Goblin_Gnaw_Low_Diffuse.tga"
-		      "/home/baggers/Code/lisp/lark/media/GnawTheGoblin/Goblin_Gnaw_Low_Normal.tga"
-		      "/home/baggers/Code/lisp/lark/media/GnawTheGoblin/Goblin_Gnaw_Low_Metalic.tga")
-	  (things *game-state*))
+    (setf gnaw (load-thing
+		"/home/baggers/Code/lisp/lark/media/GnawTheGoblin/Goblin_Gnaw.FBX"
+		"/home/baggers/Code/lisp/lark/media/GnawTheGoblin/Goblin_Gnaw_Low_Diffuse.tga"
+		"/home/baggers/Code/lisp/lark/media/GnawTheGoblin/Goblin_Gnaw_Low_Normal.tga"
+		"/home/baggers/Code/lisp/lark/media/GnawTheGoblin/Goblin_Gnaw_Low_Metalic.tga"))
+    (push gnaw (things *game-state*))
     (setf (pos (first (things *game-state*))) (v! 0 0 -120))))
 
 (defun window-size-callback (event timestamp)
