@@ -109,9 +109,12 @@
 ;; frostbite shading functions
 
 (defun-g fresnel-schlick ((f0 :vec3) (f90 :float) (u :float))
-  (+ f0 (* (- (v! f90 f90 f90) f0) (pow (- 1s0 u) 5s0))))
+  (+ f0
+     (* (- (v3! f90) f0)
+	(pow (- 1s0 u) 5s0))))
 
-
+;; [CHECK] This looks good, linear-roughness is interesting though, is our
+;;         roughness ok?
 (defun-g disney-diffuse ((n·v :float) (n·l :float) (l·h :float)
 			 (linear-roughness :float))
   ;; with renormalization of it's energy
@@ -138,7 +141,7 @@
 ;; lambda_v = ( -1 + sqrt ( alphaG2 * (1 - NdotL2 ) / NdotL2 + 1) ) * 0.5 f ;
 ;; lambda_l = ( -1 + sqrt ( alphaG2 * (1 - NdotV2 ) / NdotV2 + 1) ) * 0.5 f ;
 ;; G_SmithGGXCorrelated = 1 / (1 + lambda_v + lambda_l);
-;; V_SmithGGXCorrelated = G_SmithGGXCorrelated / (4.0 f * NdotL * NdotV ) ;
+;; V_SmithGGXCorrelated = G_SmithGGXCorrelated / (4.0 f * N·V * N·L ) ;
 ;;
 ;; below is the optimized version
 (defun-g ggx-geom-smith-correlated ((n·v :float) (n·l :float) (α :float))
@@ -192,11 +195,11 @@
     (* attenuation attenuation)))
 
 (defun-g punctual-light-luminance
-    ((at-point :vec3) (normal :vec3) (view-dir :vec3)
+    ((wpos :vec3) (normal :vec3) (view-dir :vec3)
      (base-color :vec3) (roughness :float) (metallic :float) (ao :float)
      (light-pos :vec3) (light-color :vec3) (light-inv-sqr-att-radius :float))
   ;;
-  (let* ((unormalized-light-vec (- light-pos at-point))
+  (let* ((unormalized-light-vec (- light-pos wpos))
 	 (normalized-light-vec (normalize unormalized-light-vec))
 	 (half-vec (normalize (+ normalized-light-vec view-dir)))
 	 (n·v (dot normal view-dir))
@@ -212,18 +215,23 @@
 	 (specular (specular-brdf n·v l·h n·h n·l half-vec f0 f90 roughness))
 	 (ks 1)
 	 (kd 1)
-	 (bsdf (+ (* kd diffuse) (* ks specular)))
+	 (final (+ (* kd diffuse) (* ks specular)))
 	 ;;
-	 (attenuation-factor 1.0)
-	 (attenuation ;;(* attenuation-factor)
-	  (get-distance-attenuation unormalized-light-vec
-				    light-inv-sqr-att-radius)))
-    (+ (* base-color 0.3)
-       (* bsdf
-	  ;;(saturate (dot normal normalized-light-vec))
-	  ;;light-color
+	 (attenuation-factor 10.0)
+	 (attenuation (* attenuation-factor
+		      	 (get-distance-attenuation unormalized-light-vec
+		      				   light-inv-sqr-att-radius))
+	   ))
+    (+ (* base-color 0.0)
+       (* ;;final
+	  (saturate (dot normal normalized-light-vec))
+	  light-color
 	  ;;attenuation
-	  1))))
+	  ;;ao
+	  1))
+    (let ((p roughness))
+      (v! p p p))
+    ))
 
 ;;----------------------------------------------------------------------
 ;; Approach
@@ -255,10 +263,11 @@
 			    &uniform (base-tex :sampler-2d)
 			    (norm-tex :sampler-2d)
 			    (mat-tex :sampler-2d))
-  (values world-pos
-          (* btn-mat (s~ (texture norm-tex uv) :xyz))
-  	  (s~ (texture base-tex uv) :xyz)
-  	  (v! (s~ (texture mat-tex uv) :xw) 1)))
+  (let ((mat (texture mat-tex uv)))
+    (values world-pos
+	    (* btn-mat (s~ (texture norm-tex uv) :xyz))
+	    (s~ (texture base-tex uv) :xyz)
+	    (v! (x mat) (y mat) 1))))
 
 
 (def-g-> pack-gbuffer-pass ()
@@ -278,18 +287,17 @@
      (normal-sampler :sampler-2d) (base-sampler :sampler-2d)
      (mat-sampler :sampler-2d))
   (let* ((wpos (s~ (texture pos-sampler tc) :xyz))
-	 (wnormal (s~ (texture normal-sampler tc) :xyz))
+	 (wnormal (normalize (s~ (texture normal-sampler tc) :xyz)))
 	 (base-color (s~ (texture base-sampler tc) :xyz))
 	 (material (texture mat-sampler tc))
 	 (metallic (x material))
 	 (roughness (y material))
-	 (ao (z material))
-	 (light-inv-sqr-att-radius light-radius))
-    (+ (* 0.1 base-color)
-       (punctual-light-luminance
-	wpos wnormal wview-dir
-	base-color roughness metallic ao
-	light-origin light-radiance light-inv-sqr-att-radius))))
+	 (ao 1.0)
+	 (light-inv-sqr-att-radius (/ 1 (pow light-radius 2))))
+    (punctual-light-luminance
+     wpos wnormal wview-dir
+     base-color roughness metallic ao
+     light-origin light-radiance light-inv-sqr-att-radius)))
 
 (def-g-> pbr-pass ()
   #'pass-through-vert my-pbr-analytic-light-frag)
@@ -308,11 +316,11 @@
 ;;----------------------------------------------------------------------
 
 (defun render-thing (thing camera)
-  (let ((time (/ (now) 3000))
+  (let ((time (/ (now) 6000))
 	(gb (get-gbuffer))
-  	;;(pb (get-post-buff))
+  	(pb (get-post-buff))
 	)
-    (setf (rot gnaw) (q:from-fixed-angles (sin time) (cos time) 0s0))
+    (setf (rot thing) (q:from-fixed-angles (* 3 (sin time)) (* 2 (cos time)) 0s0))
     (using-camera camera
       (with-fbo-bound ((gbuffer-fbo gb))
       	(clear)
@@ -324,23 +332,22 @@
 		  :mat-tex (material-sampler thing))))
       (let* ((time (/ (now) 600))
 	     (light-pos
-	      (v:+ (v! 0 0 0)
+	      (v:+ (v! 0 0 -120)
 		   (v3:*s (v! (cos time) 0 (* (sin time)))
 			  100s0))))
-	;; (with-fbo-bound ((post-buff-fbo pb))
-	;;   (clear))
-	(map-g #'pbr-pass *quad-stream*
-	       :wview-dir (v! 0 0 -1)
-	       :light-origin light-pos
-	       :light-radius 200s0
-	       :light-radiance (v! 0.7 0.7 0.7)
-	       :pos-sampler (gbuffer-pos-sampler gb)
-	       :normal-sampler (gbuffer-norm-sampler gb)
-	       :base-sampler (gbuffer-base-sampler gb)
-	       :mat-sampler (gbuffer-mat-sampler gb)))
-      ;; (map-g #'pbr-post-pass *quad-stream*
-      ;; 	     :linear-final (post-buff-color-sampler pb))
-      )))
+	(with-fbo-bound ((post-buff-fbo pb))
+	  (clear)
+	  (map-g #'pbr-pass *quad-stream*
+		 :wview-dir (v! 0 0 -1)
+		 :light-origin light-pos
+		 :light-radius 200s0
+		 :light-radiance (v! 0.7 0.7 0.7)
+		 :pos-sampler (gbuffer-pos-sampler gb)
+		 :normal-sampler (gbuffer-norm-sampler gb)
+		 :base-sampler (gbuffer-base-sampler gb)
+		 :mat-sampler (gbuffer-mat-sampler gb))))
+      (map-g #'pbr-post-pass *quad-stream*
+      	     :linear-final (post-buff-color-sampler pb)))))
 
 ;;----------------------------------------------------------------------
 
@@ -375,6 +382,6 @@
   (let ((new-resolution (v! (down-to-nearest (v:x new-resolution) 8)
 			    (down-to-nearest (v:y new-resolution) 8)))
 	(new-dimensions (list (v:x new-resolution) (v:y new-resolution))))
-    (format t "~%New Resolution: ~a~%" new-resolution)
+    ;;(format t "~%New Resolution: ~a~%" new-resolution)
     (setf (viewport-resolution (camera-viewport *camera*)) new-resolution)
     (resize-gbuffers new-dimensions)))
