@@ -108,14 +108,11 @@
 ;;----------------------------------------------------------------------
 ;; frostbite shading functions
 
-;; [CHECK] This looks good
 (defun-g fresnel-schlick ((f0 :vec3) (f90 :float) (u :float))
   (+ f0
      (* (- (v3! f90) f0)
 	(pow (- 1s0 u) 5s0))))
 
-;; [CHECK] This looks good, linear-roughness is interesting though, is our
-;;         roughness ok?
 (defun-g disney-diffuse ((n·v :float) (n·l :float) (l·h :float)
 			 (linear-roughness :float))
   ;; with renormalization of it's energy
@@ -129,7 +126,6 @@
     (* light-scatter view-scatter energy-factor)))
 
 
-;; [CHECK] This looks good
 (defun-g ggx-distribution ((n·h :float) (m :float))
   (let* ((m² (* m m))
 	 (f (+ 1.0 (* (- (* n·h m²)
@@ -148,7 +144,6 @@
 ;; V_SmithGGXCorrelated = G_SmithGGXCorrelated / (4.0 f * N·V * N·L ) ;
 ;;
 ;; below is the optimized version
-;; [CHECK] This looks good
 (defun-g ggx-geom-smith-correlated ((n·v :float) (n·l :float) (α :float))
   (let* ((α² (* α α))
 	 (ggx-v-λ (* n·l (sqrt (+ (* (+ (* (- n·v) α²)
@@ -162,7 +157,6 @@
     (/ 0.5 (+ ggx-v-λ ggx-l-λ))))
 
 
-;; [CHECK] This looks good
 (defun-g specular-brdf ((n·v :float) (l·h :float) (n·h :float) (n·l :float)
 			(h :vec3) (f0 :vec3) (f90 :float) (roughness :float))
   (let ((f (fresnel-schlick f0 f90 l·h))
@@ -188,20 +182,6 @@
 		    distance²
 		    inverse-square-attenuation-radius))))
 
-
-  ;; On the CPU it would be
-  ;; float lightAngleScale = 1.0f / max (0.001f, (cosInner - cosOuter));
-  ;; float lightAngleOffset = -cosOuter * angleScale;
-  ;;
-(defun-g get-angle-attenuation ((normalized-light-vec :vec3) (light-dir :vec3)
-				(light-angle-scale :float)
-				(light-angle-offset :float))
-  (let* ((cd (dot light-dir normalized-light-vec))
-	 (attenuation (saturate (+ (* cd light-angle-scale)
-				   light-angle-offset))))
-    ;; squaring smooths the transition
-    (* attenuation attenuation)))
-
 (defun-g punctual-light-luminance
     ((wpos :vec3) (normal :vec3) (view-dir :vec3)
      (base-color :vec3) (roughness :float) (metallic :float) (ao :float)
@@ -211,49 +191,32 @@
 	 (normalized-light-vec (normalize unormalized-light-vec))
 	 ;;
 	 (half-vec (normalize (+ normalized-light-vec view-dir)))
-	 (n·v (+ (abs (dot normal view-dir)) 0.00001))
+	 (n·v (+ (abs (dot normal view-dir))
+		 0.00001)) ;; biased to avoid artifacts
 	 (l·h (saturate (dot normalized-light-vec half-vec)))
 	 (n·h (saturate (dot normal half-vec)))
 	 (n·l (saturate (dot normal normalized-light-vec)))
 	 ;;
-	 (linear-roughness roughness) ;; ← These two are super wrong
-	 (roughness roughness)        ;; ← see notes for the bit where I'm lost
+	 (albedo (mix base-color (v3! 0) metallic))
 	 ;;
-	 (f0 (mix (v! 0.04 0.04 0.04) base-color (- 1 metallic))) ;; ← probably
-	 (f90 1.0)                                                ;; ← wrong
+	 (linear-roughness roughness)
+	 (roughness (* linear-roughness linear-roughness))
+	 ;;
+	 (f0 (mix (v! 0.04 0.04 0.04) base-color metallic))
+	 (f90 (saturate (* 50s0 (dot f0 (v3! 0.33)))))
 	 ;;
 	 (fd (/ (disney-diffuse n·v n·l l·h linear-roughness) +pi+))
 	 (fr (specular-brdf n·v l·h n·h n·l half-vec f0 f90 roughness))
 	 ;;
-	 (diffuse (* base-color fd)) ;; definitely wrong
-	 ;;
-	 (ks (x (saturate (fresnel-schlick f0 f90 l·h)))) ;; ← again not sure if
-	 (kd (- 1 ks))                                    ;; ← this makes sense
-	 (final (+ (* kd diffuse) (* ks fr)))
+	 (final (+ (* albedo fd) fr))
 	 ;;
 	 (attenuation (get-distance-attenuation
 		       unormalized-light-vec light-inv-sqr-att-radius)))
     (* final
-       (saturate (dot normal normalized-light-vec))
-       light-color
-       attenuation
+       n·l
        ;;ao
-       1)
-    ;; (let ((p roughness))
-    ;;   (v! p p p))
-    ;; base-color
-    ))
-
-;;----------------------------------------------------------------------
-;; Approach
-
-;; - diffuse brdf - lambertian
-;; - specular brdf
-;;   - D - ggx/trowbridge-reitz
-;;   - G - Schlick with unreal modification for analytics lights
-;;   - F - schlick fresnel
-
-
+       light-color
+       attenuation)))
 
 ;;----------------------------------------------------------------------
 
@@ -319,7 +282,7 @@
     ((tex-coord :vec2) &uniform (linear-final :sampler-2d))
   (tone-map-reinhard
    (s~ (texture linear-final tex-coord) :xyz)
-   16s0))
+   20s0))
 
 (def-g-> pbr-post-pass ()
   #'pass-through-vert my-pbr-post-prog-frag)
@@ -327,7 +290,7 @@
 ;;----------------------------------------------------------------------
 
 (defun render-thing (thing camera)
-  (let ((time (/ (now) 3200))
+  (let ((time (/ (now) 10200))
 	(gb (get-gbuffer))
   	(pb (get-post-buff)))
     (setf (rot thing) (q:from-mat3 (m3:rotation-from-euler
@@ -343,7 +306,7 @@
 		  :mat-tex (material-sampler thing))))
       (let* ((time (/ (now) 600))
 	     (light-pos
-	      (v! -4 30 0)
+	      (v! -4 10 0)
 	       ;; (v:+ (v! 0 0 -120)
 	       ;; 	   (v3:*s (v! (cos time) 0 (* (sin time)))
 	       ;; 		  100s0))
@@ -353,8 +316,8 @@
 	  (map-g #'pbr-pass *quad-stream*
 		 :wview-dir (v! 0 0 -1)
 		 :light-origin light-pos
-		 :light-radius 500s0
-		 :light-radiance (v! 600.3 600.3 600.3)
+		 :light-radius 3000s0
+		 :light-radiance (v! 2000.3 2000.3 2000.3)
 		 :pos-sampler (gbuffer-pos-sampler gb)
 		 :normal-sampler (gbuffer-norm-sampler gb)
 		 :base-sampler (gbuffer-base-sampler gb)
