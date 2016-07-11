@@ -280,9 +280,10 @@
 
 (defun-g my-pbr-post-prog-frag
     ((tex-coord :vec2) &uniform (linear-final :sampler-2d))
-  (tone-map-reinhard
+  (tone-map-uncharted2
    (s~ (texture linear-final tex-coord) :xyz)
-   20s0))
+   20s0
+   1s0))
 
 (def-g-> pbr-post-pass ()
   #'pass-through-vert my-pbr-post-prog-frag)
