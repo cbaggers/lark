@@ -108,6 +108,7 @@
 ;;----------------------------------------------------------------------
 ;; frostbite shading functions
 
+;; [CHECK] This looks good
 (defun-g fresnel-schlick ((f0 :vec3) (f90 :float) (u :float))
   (+ f0
      (* (- (v3! f90) f0)
@@ -128,9 +129,12 @@
     (* light-scatter view-scatter energy-factor)))
 
 
+;; [CHECK] This looks good
 (defun-g ggx-distribution ((n·h :float) (m :float))
   (let* ((m² (* m m))
-	 (f (+ 1.0 (* n·h (- (* n·h m²) n·h))))
+	 (f (+ 1.0 (* (- (* n·h m²)
+			 n·h)
+		      n·h)))
 	 (f² (* f f)))
     ;; we don't divide by +pi+ here as we will do that in the main brdf function
     (/ m² f²)))
@@ -144,13 +148,21 @@
 ;; V_SmithGGXCorrelated = G_SmithGGXCorrelated / (4.0 f * N·V * N·L ) ;
 ;;
 ;; below is the optimized version
+;; [CHECK] This looks good
 (defun-g ggx-geom-smith-correlated ((n·v :float) (n·l :float) (α :float))
   (let* ((α² (* α α))
-	 (ggx-v-λ (* n·l (sqrt (+ (* (+ n·v (* α² (- n·v))) n·v) α²))))
-	 (ggx-l-λ (* n·v (sqrt (+ (* (+ n·l (* α² (- n·l))) n·l) α²)))))
+	 (ggx-v-λ (* n·l (sqrt (+ (* (+ (* (- n·v) α²)
+					n·v)
+				     n·v)
+				  α²))))
+	 (ggx-l-λ (* n·v (sqrt (+ (* (+ (* (- n·l) α²)
+					n·l)
+				     n·l)
+				  α²)))))
     (/ 0.5 (+ ggx-v-λ ggx-l-λ))))
 
 
+;; [CHECK] This looks good
 (defun-g specular-brdf ((n·v :float) (l·h :float) (n·h :float) (n·l :float)
 			(h :vec3) (f0 :vec3) (f90 :float) (roughness :float))
   (let ((f (fresnel-schlick f0 f90 l·h))
@@ -158,10 +170,6 @@
 	(d (ggx-distribution n·h roughness)))
     (/ (* d g f) +pi+)))
 
-
-(defun-g diffuse-brdf ((n·v :float) (n·l :float) (l·h :float)
-		       (linear-roughness :float))
-  (disney-diffuse n·v n·l l·h linear-roughness))
 
 ;;----------------------------------------------------------------------
 ;; frostbite punctual light
@@ -201,36 +209,39 @@
   ;;
   (let* ((unormalized-light-vec (- light-pos wpos))
 	 (normalized-light-vec (normalize unormalized-light-vec))
+	 ;;
 	 (half-vec (normalize (+ normalized-light-vec view-dir)))
-	 (n·v (dot normal view-dir))
-	 (n·l (dot normal normalized-light-vec))
-	 (n·h (dot normal half-vec))
-	 (l·h (dot normalized-light-vec half-vec))
+	 (n·v (+ (abs (dot normal view-dir)) 0.00001))
+	 (l·h (saturate (dot normalized-light-vec half-vec)))
+	 (n·h (saturate (dot normal half-vec)))
+	 (n·l (saturate (dot normal normalized-light-vec)))
 	 ;;
-	 (linear-roughness (sqrt roughness))
-	 (f0 (mix (v! 0.04 0.04 0.04) base-color metallic))
-	 (f90 1.0)
+	 (linear-roughness roughness) ;; ← These two are super wrong
+	 (roughness roughness)        ;; ← see notes for the bit where I'm lost
 	 ;;
-	 (diffuse (* base-color (diffuse-brdf n·v n·l l·h linear-roughness))) ;; definitely wrong
-	 (specular (specular-brdf n·v l·h n·h n·l half-vec f0 f90 roughness))
-	 (ks 1)
-	 (kd 1)
-	 (final (+ (* kd diffuse) (* ks specular)))
+	 (f0 (mix (v! 0.04 0.04 0.04) base-color (- 1 metallic))) ;; ← probably
+	 (f90 1.0)                                                ;; ← wrong
 	 ;;
-	 (attenuation-factor 10.0)
-	 (attenuation (* attenuation-factor
-		      	 (get-distance-attenuation unormalized-light-vec
-		      				   light-inv-sqr-att-radius))
-	   ))
-    (+ (* base-color 0.0)
-       (* ;;final
-	  (saturate (dot normal normalized-light-vec))
-	  light-color
-	  ;;attenuation
-	  ;;ao
-	  1))
-    (let ((p roughness))
-      (v! p p p))
+	 (fd (/ (disney-diffuse n·v n·l l·h linear-roughness) +pi+))
+	 (fr (specular-brdf n·v l·h n·h n·l half-vec f0 f90 roughness))
+	 ;;
+	 (diffuse (* base-color fd)) ;; definitely wrong
+	 ;;
+	 (ks (x (saturate (fresnel-schlick f0 f90 l·h)))) ;; ← again not sure if
+	 (kd (- 1 ks))                                    ;; ← this makes sense
+	 (final (+ (* kd diffuse) (* ks fr)))
+	 ;;
+	 (attenuation (get-distance-attenuation
+		       unormalized-light-vec light-inv-sqr-att-radius)))
+    (* final
+       (saturate (dot normal normalized-light-vec))
+       light-color
+       attenuation
+       ;;ao
+       1)
+    ;; (let ((p roughness))
+    ;;   (v! p p p))
+    ;; base-color
     ))
 
 ;;----------------------------------------------------------------------
@@ -316,11 +327,11 @@
 ;;----------------------------------------------------------------------
 
 (defun render-thing (thing camera)
-  (let ((time (/ (now) 6000))
+  (let ((time (/ (now) 3200))
 	(gb (get-gbuffer))
-  	(pb (get-post-buff))
-	)
-    (setf (rot thing) (q:from-fixed-angles (* 3 (sin time)) (* 2 (cos time)) 0s0))
+  	(pb (get-post-buff)))
+    (setf (rot thing) (q:from-mat3 (m3:rotation-from-euler
+				    (v! (* 2 (cos time)) (sin time) (sin time)))))
     (using-camera camera
       (with-fbo-bound ((gbuffer-fbo gb))
       	(clear)
@@ -332,16 +343,18 @@
 		  :mat-tex (material-sampler thing))))
       (let* ((time (/ (now) 600))
 	     (light-pos
-	      (v:+ (v! 0 0 -120)
-		   (v3:*s (v! (cos time) 0 (* (sin time)))
-			  100s0))))
+	      (v! -4 30 0)
+	       ;; (v:+ (v! 0 0 -120)
+	       ;; 	   (v3:*s (v! (cos time) 0 (* (sin time)))
+	       ;; 		  100s0))
+	       ))
 	(with-fbo-bound ((post-buff-fbo pb))
 	  (clear)
 	  (map-g #'pbr-pass *quad-stream*
 		 :wview-dir (v! 0 0 -1)
 		 :light-origin light-pos
-		 :light-radius 200s0
-		 :light-radiance (v! 0.7 0.7 0.7)
+		 :light-radius 500s0
+		 :light-radiance (v! 600.3 600.3 600.3)
 		 :pos-sampler (gbuffer-pos-sampler gb)
 		 :normal-sampler (gbuffer-norm-sampler gb)
 		 :base-sampler (gbuffer-base-sampler gb)
