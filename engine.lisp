@@ -33,21 +33,18 @@
 (defvar *running* nil)
 (defvar gnaw nil)
 (defvar gun nil)
-(defvar koob nil)
 
 (defun startup ()
   (unless (things *game-state*)
+    (let ((lptex (make-texture nil :dimensions '(128 128) :cubes t :element-type :rgb16f)))
+      (setf light-probe-sampler (sample lptex))
+      (setf light-probe-fbo (make-fbo lptex :d)))
     (setf gun (load-thing
 	       "/home/baggers/Code/lisp/lark/media/Cerberus_by_Andrew_Maximov/Cerberus_LP.FBX"
 	       "/home/baggers/Code/lisp/lark/media/Cerberus_by_Andrew_Maximov/Cerberus_A.png"
 	       "/home/baggers/Code/lisp/lark/media/Cerberus_by_Andrew_Maximov/Cerberus_N.png"
 	       "/home/baggers/Code/lisp/lark/media/Cerberus_by_Andrew_Maximov/Cerberus_M_R.png"))
-    ;; (setf gnaw (load-thing
-    ;; 		"/home/baggers/Code/lisp/lark/media/GnawTheGoblin/Goblin_Gnaw.FBX"
-    ;; 		"/home/baggers/Code/lisp/lark/media/GnawTheGoblin/Goblin_Gnaw_Low_Diffuse.tga"
-    ;; 		"/home/baggers/Code/lisp/lark/media/GnawTheGoblin/Goblin_Gnaw_Low_Normal.tga"
-    ;; 		"/home/baggers/Code/lisp/lark/media/GnawTheGoblin/Goblin_Gnaw_Low_Metalic.tga"))
-    (setf koob
+    (setf qoob
 	  (sample
 	   (make-cubemap-tex
 	    "media/ldrPisa/pisa_negx.jpg"
@@ -56,6 +53,11 @@
 	    "media/ldrPisa/pisa_negy.jpg"
 	    "media/ldrPisa/pisa_posz.jpg"
 	    "media/ldrPisa/pisa_negz.jpg")))
+    (let ((dfg-tex (make-texture nil :dimensions '(128 128)
+				 :element-type :rgb16f)))
+      ;; apparently this could be r16g16f (rg16f?) ↑  ↑
+      (setf dfg-sampler (sample dfg-tex))
+      (setf dfg-fbo (make-fbo `(0 ,dfg-tex) '(:d :dimensions '(128 128)))))
     (push gun (things *game-state*))
     (setf (pos gun) (v! 0 0 -160))))
 
@@ -87,6 +89,9 @@
 (defun render ()
   (let ((camera *camera*))
     (gl:clear :color-buffer-bit :depth-buffer-bit)
+    (map-g-into dfg-fbo #'dfg-texture-pass *quad-stream*)
+    (map-g-into light-probe-fbo #'diffuse-sample-hdr-cube *quad-stream*
+		:value-multiplier 1s0 :cube qoob)
     (with-fbo-bound ((post-buff-fbo (get-post-buff)))
       (clear))
     (map nil λ(render-thing (update-thing _) camera)

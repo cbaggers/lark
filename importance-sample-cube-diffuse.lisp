@@ -79,3 +79,7 @@
 	    (integrate-diffuse-cube-ld dir3 value-multiplier cube)
 	    (integrate-diffuse-cube-ld dir4 value-multiplier cube)
 	    (integrate-diffuse-cube-ld dir5 value-multiplier cube))))
+
+
+(def-g-> diffuse-sample-hdr-cube ()
+  #'pass-through-vert #'ld-diffuse-texture)

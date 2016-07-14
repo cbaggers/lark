@@ -1,5 +1,11 @@
 (in-package :assurance)
 
+(defvar qoob nil)
+(defvar dfg-sampler nil)
+(defvar dfg-fbo nil)
+(defvar light-probe-sampler nil)
+(defvar light-probe-fbo nil)
+
 ;;----------------------------------------------------------------------
 ;; GBuffer
 ;;
@@ -13,7 +19,8 @@
   (pos-sampler (error "") :type sampler)
   (norm-sampler (error "") :type sampler)
   (base-sampler (error "") :type sampler)
-  (mat-sampler (error "") :type sampler))
+  (mat-sampler (error "") :type sampler)
+  (depth-sampler (error "") :type sampler))
 
 (deftclass (post-buff (:constructor %make-post-buff))
   (fbo (error "") :type fbo)
@@ -42,7 +49,8 @@
      :pos-sampler (sample (attachment-tex fbo 0))
      :norm-sampler (sample (attachment-tex fbo 1))
      :base-sampler (sample (attachment-tex fbo 2))
-     :mat-sampler (sample (attachment-tex fbo 3)))))
+     :mat-sampler (sample (attachment-tex fbo 3))
+     :depth-sampler (sample (attachment-tex fbo :d)))))
 
 (defun resize-gbuffers (dimensions)
   (setf *gb* (make-gbuffer dimensions))
@@ -183,7 +191,7 @@
 		    inverse-square-attenuation-radius))))
 
 (defun-g punctual-light-luminance
-    ((wpos :vec3) (normal :vec3) (view-dir :vec3)
+    ((wpos :vec3) (normal :vec3) (view-dir :vec3) (n·v :float)
      (base-color :vec3) (roughness :float) (metallic :float) (ao :float)
      (light-pos :vec3) (light-color :vec3) (light-inv-sqr-att-radius :float))
   ;;
@@ -191,8 +199,6 @@
 	 (normalized-light-vec (normalize unormalized-light-vec))
 	 ;;
 	 (half-vec (normalize (+ normalized-light-vec view-dir)))
-	 (n·v (+ (abs (dot normal view-dir))
-		 0.00001)) ;; biased to avoid artifacts
 	 (l·h (saturate (dot normalized-light-vec half-vec)))
 	 (n·h (saturate (dot normal half-vec)))
 	 (n·l (saturate (dot normal normalized-light-vec)))
@@ -259,14 +265,27 @@
 
 ;;----------------------------------------------------------------------
 
-(defun-g evaluate-ibl-diffuse ()
-  (v! 0 0 0))
+(defun-g get-diffuse-dominant-dir ((n :vec3) (v :vec3) (n·v :float)
+				   (roughness :float))
+  (let* ((a (- (* 1.02341 roughness) 1.51174))
+	 (b (+ (* -0.511705 roughness) 0.755868))
+	 (lerp-factor (saturate (* (+ (* n·v a) b) roughness))))
+    (mix n v lerp-factor)))
+
+(defun-g evaluate-ibl-diffuse ((n :vec3) (v :vec3) (n·v :float)
+			       (roughness :float) (cube :sampler-cube)
+			       (dfg :sampler-2d))
+  (let* ((dominant-n (get-diffuse-dominant-dir n v n·v roughness))
+	 (diffuse-lighting (texture cube dominant-n))
+	 (diff-f (z (texture dfg (v! n·v roughness)))))
+    (v! (* (s~ diffuse-lighting :xyz) diff-f) (w diffuse-lighting))))
 
 (defun-g evaluate-ibl-specular ((wnormal :vec3) (cube :sampler-cube))
-  (* (s~ (texture cube wnormal) :xyz) 0.001))
+  (v! 0 0 0))
 
-(defun-g evaluate-ibl ((wnormal :vec3) (cube :sampler-cube))
-  (+ (evaluate-ibl-diffuse)
+(defun-g evaluate-ibl ((wnormal :vec3) (cube :sampler-cube) (dfg :sampler-2d)
+		       (n·v :float) (roughness :float))
+  (+ (s~ (evaluate-ibl-diffuse wnormal (v! 0 0 -1) n·v roughness cube dfg) :xyz)
      (evaluate-ibl-specular wnormal cube)))
 
 ;;----------------------------------------------------------------------
@@ -275,7 +294,8 @@
     ((tc :vec2) &uniform (wview-dir :vec3) (light-origin :vec3)
      (light-radius :float) (light-radiance :vec3) (pos-sampler :sampler-2d)
      (normal-sampler :sampler-2d) (base-sampler :sampler-2d)
-     (mat-sampler :sampler-2d) (cube :sampler-cube) (depth :sampler-2d))
+     (mat-sampler :sampler-2d) (cube :sampler-cube) (depth :sampler-2d)
+     (dfg :sampler-2d))
   (let* ((wpos (s~ (texture pos-sampler tc) :xyz))
 	 (wnormal (normalize (s~ (texture normal-sampler tc) :xyz)))
 	 (base-color (s~ (texture base-sampler tc) :xyz))
@@ -283,13 +303,15 @@
 	 (metallic (x material))
 	 (roughness (y material))
 	 (ao 1.0)
-	 (light-inv-sqr-att-radius (/ 1 (pow light-radius 2))))
+	 (light-inv-sqr-att-radius (/ 1 (pow light-radius 2)))
+	 (n·v (+ (abs (dot wnormal wview-dir))
+		 0.00001))) ;; biased to avoid artifacts)
     (setf gl-frag-depth (x (texture depth tc)))
-    (+ (punctual-light-luminance
-	wpos wnormal wview-dir
-	base-color roughness metallic ao
-	light-origin light-radiance light-inv-sqr-att-radius)
-       (evaluate-ibl wnormal cube))))
+    (+ ;; (punctual-light-luminance
+       ;; 	wpos wnormal wview-dir n.v
+       ;; 	base-color roughness metallic ao
+       ;; 	light-origin light-radiance light-inv-sqr-att-radius)
+     (evaluate-ibl wnormal cube dfg n·v roughness))))
 
 (def-g-> pbr-pass ()
   #'pass-through-vert my-pbr-analytic-light-frag)
@@ -333,8 +355,9 @@
 		 :normal-sampler (gbuffer-norm-sampler gb)
 		 :base-sampler (gbuffer-base-sampler gb)
 		 :mat-sampler (gbuffer-mat-sampler gb)
-		 :cube qoob
-		 :depth depth-sam))))))
+		 :cube light-probe-sampler
+		 :depth (gbuffer-depth-sampler gb)
+		 :dfg dfg-sampler))))))
 
 (defun post-proc (camera)
   (using-camera camera

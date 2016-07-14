@@ -27,13 +27,14 @@
 	       (:file "mouse")
 
 	       ;;
-	       (:file "lights")
 	       (:file "camera")
 	       (:file "thing")
 	       (:file "primitives")
 
 	       ;; pbr
+	       (:file "importance-sample-cube-diffuse")
 	       (:file "pbr")
+	       (:file "dfg-texture")
 
 	       ;; sky
 	       (:file "sky/sky")
