@@ -13,6 +13,9 @@
     (setf mouse-movement last-frame-relative-movement
 	  last-frame-relative-movement (v! 0 0))))
 
+(defun mouse-pos ()
+  (skitter:xy-pos-vec (skitter:mouse-pos (skitter:mouse 0))))
+
 (defun enable-mouse-capture ()
   (sdl2:set-relative-mouse-mode :true))
 

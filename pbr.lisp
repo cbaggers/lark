@@ -202,7 +202,10 @@
 	 (linear-roughness roughness)
 	 (roughness (* linear-roughness linear-roughness))
 	 ;;
-	 (f0 (mix (v! 0.04 0.04 0.04) base-color metallic))
+	 ;; frostbite parameterizes this calling it specular
+	 ;; which really confused me. Unreal just use 0.04.
+	 ;;           ↓
+	 (f0 (mix (v3! 0.04) base-color metallic))
 	 (f90 (saturate (* 50s0 (dot f0 (v3! 0.33)))))
 	 ;;
 	 (fd (/ (disney-diffuse n·v n·l l·h linear-roughness) +pi+))
@@ -214,9 +217,9 @@
 		       unormalized-light-vec light-inv-sqr-att-radius)))
     (* final
        n·l
-       ;;ao
        light-color
-       attenuation)))
+       attenuation
+       )))
 
 ;;----------------------------------------------------------------------
 
@@ -237,9 +240,10 @@
 			    &uniform (base-tex :sampler-2d)
 			    (norm-tex :sampler-2d)
 			    (mat-tex :sampler-2d))
-  (let ((mat (texture mat-tex uv)))
+  (let ((mat (texture mat-tex uv))
+	(wnormal (* btn-mat (s~ (texture norm-tex uv) :xyz))))
     (values world-pos
-	    (* btn-mat (s~ (texture norm-tex uv) :xyz))
+	    wnormal
 	    (s~ (texture base-tex uv) :xyz)
 	    (v! (x mat) (y mat) 1))))
 
@@ -255,11 +259,23 @@
 
 ;;----------------------------------------------------------------------
 
+(defun-g evaluate-ibl-diffuse ()
+  (v! 0 0 0))
+
+(defun-g evaluate-ibl-specular ((wnormal :vec3) (cube :sampler-cube))
+  (* (s~ (texture cube wnormal) :xyz) 0.001))
+
+(defun-g evaluate-ibl ((wnormal :vec3) (cube :sampler-cube))
+  (+ (evaluate-ibl-diffuse)
+     (evaluate-ibl-specular wnormal cube)))
+
+;;----------------------------------------------------------------------
+
 (defun-g my-pbr-analytic-light-frag
     ((tc :vec2) &uniform (wview-dir :vec3) (light-origin :vec3)
      (light-radius :float) (light-radiance :vec3) (pos-sampler :sampler-2d)
      (normal-sampler :sampler-2d) (base-sampler :sampler-2d)
-     (mat-sampler :sampler-2d))
+     (mat-sampler :sampler-2d) (cube :sampler-cube) (depth :sampler-2d))
   (let* ((wpos (s~ (texture pos-sampler tc) :xyz))
 	 (wnormal (normalize (s~ (texture normal-sampler tc) :xyz)))
 	 (base-color (s~ (texture base-sampler tc) :xyz))
@@ -268,10 +284,12 @@
 	 (roughness (y material))
 	 (ao 1.0)
 	 (light-inv-sqr-att-radius (/ 1 (pow light-radius 2))))
-    (punctual-light-luminance
-     wpos wnormal wview-dir
-     base-color roughness metallic ao
-     light-origin light-radiance light-inv-sqr-att-radius)))
+    (setf gl-frag-depth (x (texture depth tc)))
+    (+ (punctual-light-luminance
+	wpos wnormal wview-dir
+	base-color roughness metallic ao
+	light-origin light-radiance light-inv-sqr-att-radius)
+       (evaluate-ibl wnormal cube))))
 
 (def-g-> pbr-pass ()
   #'pass-through-vert my-pbr-analytic-light-frag)
@@ -282,7 +300,7 @@
     ((tex-coord :vec2) &uniform (linear-final :sampler-2d))
   (tone-map-uncharted2
    (s~ (texture linear-final tex-coord) :xyz)
-   20s0
+   16s0
    1s0))
 
 (def-g-> pbr-post-pass ()
@@ -291,11 +309,10 @@
 ;;----------------------------------------------------------------------
 
 (defun render-thing (thing camera)
-  (let ((time (/ (now) 10200))
-	(gb (get-gbuffer))
+  ;; - mipmaps
+  ;; - sampling from sphere
+  (let ((gb (get-gbuffer))
   	(pb (get-post-buff)))
-    (setf (rot thing) (q:from-mat3 (m3:rotation-from-euler
-				    (v! (* 2 (cos time)) (sin time) (sin time)))))
     (using-camera camera
       (with-fbo-bound ((gbuffer-fbo gb))
       	(clear)
@@ -305,26 +322,25 @@
 		  :base-tex (base-sampler thing)
 		  :norm-tex (normal-sampler thing)
 		  :mat-tex (material-sampler thing))))
-      (let* ((time (/ (now) 600))
-	     (light-pos
-	      (v! -4 10 0)
-	       ;; (v:+ (v! 0 0 -120)
-	       ;; 	   (v3:*s (v! (cos time) 0 (* (sin time)))
-	       ;; 		  100s0))
-	       ))
+      (let* ((light-pos (v! -4 10 0)))
 	(with-fbo-bound ((post-buff-fbo pb))
-	  (clear)
 	  (map-g #'pbr-pass *quad-stream*
 		 :wview-dir (v! 0 0 -1)
 		 :light-origin light-pos
-		 :light-radius 3000s0
+		 :light-radius 200s0
 		 :light-radiance (v! 2000.3 2000.3 2000.3)
 		 :pos-sampler (gbuffer-pos-sampler gb)
 		 :normal-sampler (gbuffer-norm-sampler gb)
 		 :base-sampler (gbuffer-base-sampler gb)
-		 :mat-sampler (gbuffer-mat-sampler gb))))
+		 :mat-sampler (gbuffer-mat-sampler gb)
+		 :cube qoob
+		 :depth depth-sam))))))
+
+(defun post-proc (camera)
+  (using-camera camera
+    (let ((pb (get-post-buff)))
       (map-g #'pbr-post-pass *quad-stream*
-      	     :linear-final (post-buff-color-sampler pb)))))
+	     :linear-final (post-buff-color-sampler pb)))))
 
 ;;----------------------------------------------------------------------
 

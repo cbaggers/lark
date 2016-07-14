@@ -33,6 +33,7 @@
 (defvar *running* nil)
 (defvar gnaw nil)
 (defvar gun nil)
+(defvar koob nil)
 
 (defun startup ()
   (unless (things *game-state*)
@@ -41,6 +42,20 @@
 	       "/home/baggers/Code/lisp/lark/media/Cerberus_by_Andrew_Maximov/Cerberus_A.png"
 	       "/home/baggers/Code/lisp/lark/media/Cerberus_by_Andrew_Maximov/Cerberus_N.png"
 	       "/home/baggers/Code/lisp/lark/media/Cerberus_by_Andrew_Maximov/Cerberus_M_R.png"))
+    ;; (setf gnaw (load-thing
+    ;; 		"/home/baggers/Code/lisp/lark/media/GnawTheGoblin/Goblin_Gnaw.FBX"
+    ;; 		"/home/baggers/Code/lisp/lark/media/GnawTheGoblin/Goblin_Gnaw_Low_Diffuse.tga"
+    ;; 		"/home/baggers/Code/lisp/lark/media/GnawTheGoblin/Goblin_Gnaw_Low_Normal.tga"
+    ;; 		"/home/baggers/Code/lisp/lark/media/GnawTheGoblin/Goblin_Gnaw_Low_Metalic.tga"))
+    (setf koob
+	  (sample
+	   (make-cubemap-tex
+	    "media/ldrPisa/pisa_negx.jpg"
+	    "media/ldrPisa/pisa_posx.jpg"
+	    "media/ldrPisa/pisa_posy.jpg"
+	    "media/ldrPisa/pisa_negy.jpg"
+	    "media/ldrPisa/pisa_posz.jpg"
+	    "media/ldrPisa/pisa_negz.jpg")))
     (push gun (things *game-state*))
     (setf (pos gun) (v! 0 0 -160))))
 
@@ -48,15 +63,36 @@
   (declare (ignore timestamp))
   (reshape (skitter:size-2d-vec event)))
 
+(defvar auto-rot t)
+
 (defun step-game ()
-  (swap-mouse-move))
+  (swap-mouse-move)
+  (when (skitter:key-down-p key.1)
+    (setf auto-rot t))
+  (when (skitter:key-down-p key.2)
+    (setf auto-rot nil))
+  (let ((time (/ (now) 10200))
+	(thing gun))
+    (if auto-rot
+	(setf (rot thing) (q:from-mat3
+			   (m3:rotation-from-euler
+			    (v! (* 2 (cos time))
+				(sin time)
+				(sin time)))))
+	(let ((v (v2:/s (mouse-pos) 100s0)))
+	  (setf (rot thing) (q:from-mat3
+			     (m3:rotation-from-euler
+			      (v! (y v) 0s0 (x v)))))))))
 
 (defun render ()
   (let ((camera *camera*))
     (gl:clear :color-buffer-bit :depth-buffer-bit)
-    (render-sky camera)
+    (with-fbo-bound ((post-buff-fbo (get-post-buff)))
+      (clear))
     (map nil λ(render-thing (update-thing _) camera)
-	 (things *game-state*))
+    	 (things *game-state*))
+    (render-sky camera)
+    (post-proc camera)
     (swap)))
 
 (defun stop () (setf *running* nil))

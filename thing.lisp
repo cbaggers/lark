@@ -15,11 +15,11 @@
 
 (defun load-thing (filepath base-tex-path normal-tex-path mat-tex-path)
   (let ((base (cepl.sdl2-image:load-image-to-texture
-	       base-tex-path :srgb8-alpha8))
+	       base-tex-path :srgb8-alpha8 t t))
 	(norm (cepl.sdl2-image:load-image-to-texture
-	       normal-tex-path :srgb8-alpha8))
+	       normal-tex-path :srgb8-alpha8 t t))
 	(mat (cepl.sdl2-image:load-image-to-texture
-	      mat-tex-path :srgb8-alpha8)))
+	      mat-tex-path :srgb8-alpha8 t t)))
     (make-thing :model (yaksha:load-model filepath)
 		:base-sampler (sample base)
 		:normal-sampler (sample norm)
@@ -30,28 +30,5 @@
   ;; populate space from transform
   (setf (get-transform (in-space thing) *world-space*)
 	(m4:* (m4:translation (pos thing))
-	      (q:to-mat4 (rot thing))))
+	      (q:to-mat4 (q:normalize (rot thing)))))
   thing)
-
-
-;; (defun render-thing (thing camera)
-;;   (let ((gb (get-gbuffer)))
-;;     (with-fbo-bound ((gbuffer-fbo gb))
-;;       (clear)
-;;       (using-camera camera
-;; 	(loop :for mesh :in (yaksha:model-meshes (model thing)) :do
-;; 	   (map-g #'drender-geom-pass (yaksha:mesh-stream mesh)
-;; 		  :model-space (in-space thing)
-;; 		  :diffuse-tex (first (yaksha:mesh-samplers mesh))
-;; 		  :spec-tex nil))))
-;;     (let ((light-pos
-;; 	   (v! (* (cos (/ (now) 600)) 50)
-;; 	       0
-;; 	       (+ -20 (* (sin (/ (now) 600)) 50)))))
-;;       (map-g #'drender-lighting-pass *quad-stream*
-;; 	     :world-pos-sampler (gbuffer-pos-sampler gb)
-;; 	     :world-norm-sampler (gbuffer-norm-sampler gb)
-;; 	     :diff-and-spec-sampler (gbuffer-diff-spec-sampler gb)
-;; 	     :camera-space (cepl.camera.base::base-camera-space camera)
-;; 	     :light-pos light-pos
-;; 	     :light-intensity 0.5))))
