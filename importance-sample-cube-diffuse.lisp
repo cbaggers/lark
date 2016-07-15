@@ -1,16 +1,16 @@
-(in-package :assurance)
+(in-package :lark)
 
 (defun-g radical-inverse-vdc ((bits :uint))
   "http://holger.dammertz.org/stuff/notes_HammersleyOnHemisphere.html"
-  (let ((bits (bit-ior (<< bits 16) (>> bits 16)))
-	(bits (bit-ior (<< (bit-and bits #x55555555) 1)
-		       (>> (bit-and bits #xAAAAAAAA) 1)))
-	(bits (bit-ior (<< (bit-and bits #x33333333) 2)
-		       (>> (bit-and bits #xCCCCCCCC) 2)))
-	(bits (bit-ior (<< (bit-and bits #x0F0F0F0F) 4)
-		       (>> (bit-and bits #xF0F0F0F0) 4)))
-	(bits (bit-ior (<< (bit-and bits #x00FF00FF) 8)
-		       (>> (bit-and bits #xFF00FF00) 8))))
+  (let ((bits (bit-ior (<< bits (uint 16)) (>> bits (uint 16))))
+	(bits (bit-ior (<< (bit-and bits (uint #x55555555)) (uint 1))
+		       (>> (bit-and bits (uint #xAAAAAAAA)) (uint 1))))
+	(bits (bit-ior (<< (bit-and bits (uint #x33333333)) (uint 2))
+		       (>> (bit-and bits (uint #xCCCCCCCC)) (uint 2))))
+	(bits (bit-ior (<< (bit-and bits (uint #x0F0F0F0F)) (uint 4))
+		       (>> (bit-and bits (uint #xF0F0F0F0)) (uint 4))))
+	(bits (bit-ior (<< (bit-and bits (uint #x00FF00FF)) (uint 8))
+		       (>> (bit-and bits (uint #xFF00FF00)) (uint 8)))))
     ;;                  ↓ 0x100000000 ↓
     (* (float bits) 2.3283064365386963e-10)))
 
@@ -44,9 +44,9 @@
 
 (defun-g integrate-diffuse-cube-ld ((n :vec3) (value-multiplier :float)
 				    (cube :sampler-cube))
-  (let ((sample-count 32)
+  (let ((sample-count (uint 32))
 	(bdrf-accum (v4! 0)))
-    (for (i 0) (< i sample-count) (++ i)
+    (for (i (uint 0)) (< i sample-count) (++ i)
 	 (let ((eta (get-sample i sample-count)))
 	   (multiple-value-bind (l n·l pdf)
 	       (importance-sample-cos-dir eta n)

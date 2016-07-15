@@ -1,4 +1,4 @@
-(in-package #:assurance)
+(in-package #:lark)
 
 (let (cached-gpu-data)
   (defun make-cube (&key (size 10.0))

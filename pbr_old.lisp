@@ -1,4 +1,4 @@
-(in-package :assurance)
+(in-package :lark)
 
 (defmacro bind-vec (vars vec &body body)
   (labels ((get-func (i var)

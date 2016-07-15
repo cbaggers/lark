@@ -1,4 +1,4 @@
-(in-package :assurance)
+(in-package :lark)
 (in-readtable fn:fn-reader)
 
 (defvar *started* nil)
@@ -10,7 +10,7 @@
 (defun start-engine ()
   (unless *started*
     (unless cepl.context:*gl-context*
-      (cepl::init 640 480 "Assurance" t))
+      (cepl::init 640 480 "Lark" t))
     (setf *on-engine-init*
 	  (map nil #'funcall *on-engine-init*))
     (setf *game-state* (make-game-state))
@@ -111,7 +111,7 @@
   (unless *started*
     (start-engine)
     (unless *started*
-      (error "Assurance: Cannot run as engine could not be started.")))
+      (error "Lark: Cannot run as engine could not be started.")))
   (if *running*
       (print "already running")
       (let ((main-loop-stepper (temporal-functions:make-stepper

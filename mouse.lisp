@@ -1,4 +1,4 @@
-(in-package :assurance)
+(in-package :lark)
 
 (let ((mouse-movement (v! 0 0))
       (last-frame-relative-movement (v! 0 0)))

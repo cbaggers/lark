@@ -12,7 +12,7 @@
 	   :model-filepath :model-meshes :texture
 	   :uv :normal :tangent))
 
-(defpackage #:assurance
+(defpackage #:lark
   (:import-from :rtg-math.projection :perspective)
   (:import-from :yaksha :uv :normal :normal)
   (:import-from #:cepl.camera

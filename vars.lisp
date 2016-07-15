@@ -1,3 +1,3 @@
-(in-package #:assurance)
+(in-package #:lark)
 
 (defvar *on-engine-init* nil)

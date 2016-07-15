@@ -1,4 +1,4 @@
-(in-package #:assurance)
+(in-package #:lark)
 
 (defvar *world-up* (v! 0 1 0))
 

@@ -1,7 +1,7 @@
-(in-package #:assurance)
+(in-package #:lark)
 
 (defun path (filepath)
-  (asdf:system-relative-pathname :assurance filepath))
+  (asdf:system-relative-pathname :lark filepath))
 
 (defvar *backup-tex* nil)
 (defvar *backup-tex-sampler* nil)

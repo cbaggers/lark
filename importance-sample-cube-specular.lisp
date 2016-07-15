@@ -1,4 +1,4 @@
-(in-package :assurance)
+(in-package :lark)
 
 (defun-g ggx-distribution ((n·h :float) (m :float))
   (let* ((m² (* m m))
@@ -33,10 +33,10 @@
 				     (value-multiplier :float)
 				     (cube :sampler-cube)
 				     (resolution :int))
-  (let ((sample-count 32)
+  (let ((sample-count (uint 32))
 	(bdrf-accum (v4! 0))
 	(bdrf-accum-weight 0s0))
-    (for (i 0) (< i sample-count) (++ i)
+    (for (i (uint 0)) (< i sample-count) (++ i)
 	 (let* ((eta (get-sample i sample-count))
 		(h (importance-sample-ggx eta roughness n))
 		(l (- (* 2 (dot v h) h) v))

@@ -1,15 +1,15 @@
-(in-package :assurance)
+(in-package :lark)
 
 
 (defun-g integrate-dfg-only ((n·v :float) (roughness :float))
-  (let ((sample-count 1024)
+  (let ((sample-count (uint 1024))
 	(n (v! 0 0 1))
 	(v (v! (sqrt (- 1s0 (* n·v n·v))) 0 n·v))
 	(accum (v4! 0))
 	(accum-weight 0s0))
     ;; Compute pre-integration
-    (for (i 0) (< i sample-count) (++ i)
-	 (let* ((u (get-sample i sample-count))
+    (for (i (uint 0)) (< i sample-count) (++ i)
+	 (let* ((u (get-sample (uint i) (uint sample-count)))
 		(h (importance-sample-ggx u roughness n))
 		(l (- (* 2 (dot v h) h) v))
 		(n·l (saturate (z l)))

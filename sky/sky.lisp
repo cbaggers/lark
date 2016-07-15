@@ -1,4 +1,4 @@
-(in-package :assurance)
+(in-package :lark)
 
 (defvar *sky-enabled* t)
 (defvar *skybox-stream* nil)

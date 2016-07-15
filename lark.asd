@@ -1,6 +1,6 @@
-;;;; assurance.asd
+;;;; lark.asd
 
-(asdf:defsystem #:assurance
+(asdf:defsystem #:lark
   :description "An experient to find the working state of cepl"
   :author "Baggers <techsnuffle@gmail.com>"
   :license "GPLv3"
@@ -32,6 +32,7 @@
 	       (:file "primitives")
 
 	       ;; pbr
+	       (:file "types")
 	       (:file "pass-through")
 	       (:file "importance-sample-cube-diffuse")
 	       (:file "importance-sample-cube-specular")

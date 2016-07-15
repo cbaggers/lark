@@ -14,7 +14,7 @@
 	      :meshes (list mesh)))
 
 (defmethod print-object ((object model) stream)
-  (format stream "#<assurance-model ~s>" (sxhash object)))
+  (format stream "#<lark-model ~s>" (sxhash object)))
 
 (defmethod free ((object model))
   (mapcar #'free (model-meshes object))
