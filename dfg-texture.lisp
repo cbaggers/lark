@@ -1,25 +1,5 @@
 (in-package :assurance)
 
-;; epic's technique
-(defun-g importance-sample-ggx ((xi :vec2) (roughness :float) (n :vec3))
-  (let* ((α (* roughness roughness))
-	 (φ (* 2 +pi+ (x xi)))
-	 (cosθ (sqrt (/ (- 1 (y xi))
-			(+ 1 (* (- (* α α) 1) (y xi))))))
-	 (sinθ (sqrt (- 1 (* cosθ cosθ))))
-	 (h (v! (* sinθ (cos φ))
-		(* sinθ (sin φ))
-		cosθ))
-	 (up-vector (if (< (abs (z n)) 0.999)
-			(v! 0 0 1)
-			(v! 1 0 0)))
-	 (tangent-x (normalize (cross up-vector n)))
-	 (tangent-y (cross n tangent-x)))
-    ;; apparently tanget to world space
-    (+ (* tangent-x (x h))
-       (* tangent-y (y h))
-       (* n (z h)))))
-
 
 (defun-g integrate-dfg-only ((n·v :float) (roughness :float))
   (let ((sample-count 1024)

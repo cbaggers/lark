@@ -5,6 +5,8 @@
 (defvar dfg-fbo nil)
 (defvar light-probe-sampler nil)
 (defvar light-probe-fbo nil)
+(defvar light-probe-specular-sampler nil)
+(defvar light-probe-specular-fbo nil)
 
 ;;----------------------------------------------------------------------
 ;; GBuffer
@@ -134,16 +136,6 @@
     (* light-scatter view-scatter energy-factor)))
 
 
-(defun-g ggx-distribution ((n·h :float) (m :float))
-  (let* ((m² (* m m))
-	 (f (+ 1.0 (* (- (* n·h m²)
-			 n·h)
-		      n·h)))
-	 (f² (* f f)))
-    ;; we don't divide by +pi+ here as we will do that in the main brdf function
-    (/ m² f²)))
-
-
 ;; Original formulation of G_SmithGGX Correlated
 ;;
 ;; lambda_v = ( -1 + sqrt ( alphaG2 * (1 - NdotL2 ) / NdotL2 + 1) ) * 0.5 f ;
@@ -265,12 +257,40 @@
 
 ;;----------------------------------------------------------------------
 
+(defun-g linear-roughness-to-mip-level ((linear-roughness :float)
+					(mip-count :int))
+  (* (sqrt linear-roughness) mip-count))
+
+(defun-g get-specular-dominant-dir ((n :vec3) (r :vec3) (roughness :float))
+  (let* ((smoothness (saturate (- 1 roughness)))
+	 (lerp-factor (* smoothness (+ (sqrt smoothness) roughness))))
+    (mix n r lerp-factor)))
+
+(defun-g evaluate-ibl-specular ((n :vec3) (r :vec3) (n·v :float)
+				(linear-roughness :float) (roughness :float)
+				(f0 :vec3) (f90 :float) (cube :sampler-cube)
+				(ld-mip-max-level :int) (dfg :sampler-2d))
+  (let* ((dominant-r (get-specular-dominant-dir n r roughness))
+	 (dfg-tex-size 128)
+	 ;; Rebuild the function
+	 ;; L . D. ( f0.Gv.(1-Fc) + Gv.Fc ) . cosTheta / (4 . NdotL . NdotV)
+	 (n.v (max n·v (/ 0.5 dfg-tex-size)))
+	 (mip-level (linear-roughness-to-mip-level linear-roughness
+						   ld-mip-max-level))
+	 (pre-ld (texture-lod cube dominant-r mip-level))
+	 (pre-dfg (s~ (texture dfg (v! n·v roughness)) :xy)))
+    ;; usual follow is (v! .. (w pre-ld)) but we arent using alpha
+    (* (+ (* f0 (x pre-dfg))
+	  (* (v3! f90) (y pre-dfg)))
+       (s~ pre-ld :xyz))))
+
 (defun-g get-diffuse-dominant-dir ((n :vec3) (v :vec3) (n·v :float)
 				   (roughness :float))
   (let* ((a (- (* 1.02341 roughness) 1.51174))
 	 (b (+ (* -0.511705 roughness) 0.755868))
 	 (lerp-factor (saturate (* (+ (* n·v a) b) roughness))))
     (mix n v lerp-factor)))
+
 
 (defun-g evaluate-ibl-diffuse ((n :vec3) (v :vec3) (n·v :float)
 			       (roughness :float) (cube :sampler-cube)
@@ -280,13 +300,18 @@
 	 (diff-f (z (texture dfg (v! n·v roughness)))))
     (v! (* (s~ diffuse-lighting :xyz) diff-f) (w diffuse-lighting))))
 
-(defun-g evaluate-ibl-specular ((wnormal :vec3) (cube :sampler-cube))
-  (v! 0 0 0))
 
-(defun-g evaluate-ibl ((wnormal :vec3) (cube :sampler-cube) (dfg :sampler-2d)
-		       (n·v :float) (roughness :float))
+
+(defun-g evaluate-ibl ((wnormal :vec3) (n·v :float) (roughness :float)
+		       (cube :sampler-cube) (specular-cube :sampler-cube)
+		       (dfg :sampler-2d))
   (+ (s~ (evaluate-ibl-diffuse wnormal (v! 0 0 -1) n·v roughness cube dfg) :xyz)
-     (evaluate-ibl-specular wnormal cube)))
+     (let ((linear-roughness 0.1)
+	   (r wnormal)
+	   (f0 (v3! 0.04))
+	   (f90 0.8s0))
+       (evaluate-ibl-specular wnormal r n·v linear-roughness roughness
+			      f0 f90 specular-cube 4 dfg))))
 
 ;;----------------------------------------------------------------------
 
@@ -294,8 +319,8 @@
     ((tc :vec2) &uniform (wview-dir :vec3) (light-origin :vec3)
      (light-radius :float) (light-radiance :vec3) (pos-sampler :sampler-2d)
      (normal-sampler :sampler-2d) (base-sampler :sampler-2d)
-     (mat-sampler :sampler-2d) (cube :sampler-cube) (depth :sampler-2d)
-     (dfg :sampler-2d))
+     (mat-sampler :sampler-2d) (diffuse-cube :sampler-cube) (depth :sampler-2d)
+     (dfg :sampler-2d) (specular-cube :sampler-cube))
   (let* ((wpos (s~ (texture pos-sampler tc) :xyz))
 	 (wnormal (normalize (s~ (texture normal-sampler tc) :xyz)))
 	 (base-color (s~ (texture base-sampler tc) :xyz))
@@ -311,7 +336,8 @@
        ;; 	wpos wnormal wview-dir n.v
        ;; 	base-color roughness metallic ao
        ;; 	light-origin light-radiance light-inv-sqr-att-radius)
-     (evaluate-ibl wnormal cube dfg n·v roughness))))
+     (* base-color (evaluate-ibl wnormal n·v roughness
+				 diffuse-cube specular-cube dfg)))))
 
 (def-g-> pbr-pass ()
   #'pass-through-vert my-pbr-analytic-light-frag)
@@ -322,7 +348,7 @@
     ((tex-coord :vec2) &uniform (linear-final :sampler-2d))
   (tone-map-uncharted2
    (s~ (texture linear-final tex-coord) :xyz)
-   16s0
+   8s0
    1s0))
 
 (def-g-> pbr-post-pass ()
@@ -355,7 +381,8 @@
 		 :normal-sampler (gbuffer-norm-sampler gb)
 		 :base-sampler (gbuffer-base-sampler gb)
 		 :mat-sampler (gbuffer-mat-sampler gb)
-		 :cube light-probe-sampler
+		 :diffuse-cube light-probe-sampler
+		 ;;:specular-cube light-probe-specular-sampler
 		 :depth (gbuffer-depth-sampler gb)
 		 :dfg dfg-sampler))))))
 

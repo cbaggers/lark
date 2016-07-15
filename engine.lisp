@@ -36,9 +36,14 @@
 
 (defun startup ()
   (unless (things *game-state*)
-    (let ((lptex (make-texture nil :dimensions '(128 128) :cubes t :element-type :rgb16f)))
-      (setf light-probe-sampler (sample lptex))
-      (setf light-probe-fbo (make-fbo lptex :d)))
+    (let ((lptex-d (make-texture nil :dimensions '(128 128) :cubes t
+				 :element-type :rgb16f :mipmap t))
+	  (lptex-s (make-texture nil :dimensions '(128 128) :cubes t
+				 :element-type :rgb16f :mipmap t)))
+      (setf light-probe-sampler (sample lptex-d)
+	    light-probe-fbo (make-fbo lptex-d :d))
+      (setf light-probe-specular-sampler (sample lptex-s)
+	    light-probe-specular-fbo (make-fbo lptex-s :d)))
     (setf gun (load-thing
 	       "/home/baggers/Code/lisp/lark/media/Cerberus_by_Andrew_Maximov/Cerberus_LP.FBX"
 	       "/home/baggers/Code/lisp/lark/media/Cerberus_by_Andrew_Maximov/Cerberus_A.png"
@@ -46,13 +51,7 @@
 	       "/home/baggers/Code/lisp/lark/media/Cerberus_by_Andrew_Maximov/Cerberus_M_R.png"))
     (setf qoob
 	  (sample
-	   (make-cubemap-tex
-	    "media/ldrPisa/pisa_negx.jpg"
-	    "media/ldrPisa/pisa_posx.jpg"
-	    "media/ldrPisa/pisa_posy.jpg"
-	    "media/ldrPisa/pisa_negy.jpg"
-	    "media/ldrPisa/pisa_posz.jpg"
-	    "media/ldrPisa/pisa_negz.jpg")))
+	   (load-hdr-cross-texture "/home/baggers/Downloads/galileo_cross.hdr")))
     (let ((dfg-tex (make-texture nil :dimensions '(128 128)
 				 :element-type :rgb16f)))
       ;; apparently this could be r16g16f (rg16f?) ↑  ↑
@@ -92,6 +91,8 @@
     (map-g-into dfg-fbo #'dfg-texture-pass *quad-stream*)
     (map-g-into light-probe-fbo #'diffuse-sample-hdr-cube *quad-stream*
 		:value-multiplier 1s0 :cube qoob)
+    (map-g-into light-probe-fbo #'specular-sample-hdr-cube *quad-stream*
+		:value-multiplier 1s0 :cube qoob :roughness 0.1)
     (with-fbo-bound ((post-buff-fbo (get-post-buff)))
       (clear))
     (map nil λ(render-thing (update-thing _) camera)

@@ -33,6 +33,7 @@
 
 	       ;; pbr
 	       (:file "importance-sample-cube-diffuse")
+	       (:file "importance-sample-cube-specular")
 	       (:file "pbr")
 	       (:file "dfg-texture")
 
