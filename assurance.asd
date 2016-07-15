@@ -32,6 +32,7 @@
 	       (:file "primitives")
 
 	       ;; pbr
+	       (:file "pass-through")
 	       (:file "importance-sample-cube-diffuse")
 	       (:file "importance-sample-cube-specular")
 	       (:file "pbr")

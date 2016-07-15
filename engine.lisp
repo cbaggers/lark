@@ -51,12 +51,12 @@
 	       "/home/baggers/Code/lisp/lark/media/Cerberus_by_Andrew_Maximov/Cerberus_M_R.png"))
     (setf qoob
 	  (sample
-	   (load-hdr-cross-texture "/home/baggers/Downloads/galileo_cross.hdr")))
+	   (load-hdr-cross-texture "/home/baggers/Code/lisp/lark/media/galileo_cross.hdr")))
     (let ((dfg-tex (make-texture nil :dimensions '(128 128)
 				 :element-type :rgb16f)))
       ;; apparently this could be r16g16f (rg16f?) ↑  ↑
       (setf dfg-sampler (sample dfg-tex))
-      (setf dfg-fbo (make-fbo `(0 ,dfg-tex) '(:d :dimensions '(128 128)))))
+      (setf dfg-fbo (make-fbo `(0 ,dfg-tex) '(:d :dimensions (128 128)))))
     (push gun (things *game-state*))
     (setf (pos gun) (v! 0 0 -160))))
 

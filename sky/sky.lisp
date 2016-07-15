@@ -1,6 +1,6 @@
 (in-package :assurance)
 
-(defvar *sky-enabled* nil)
+(defvar *sky-enabled* t)
 (defvar *skybox-stream* nil)
 (defvar *sky-cube-sampler* nil)
 

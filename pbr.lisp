@@ -251,12 +251,6 @@
 
 ;;----------------------------------------------------------------------
 
-(defun-g pass-through-vert ((vert g-pt))
-  (values (v! (pos vert) 1)
-	  (tex vert)))
-
-;;----------------------------------------------------------------------
-
 (defun-g linear-roughness-to-mip-level ((linear-roughness :float)
 					(mip-count :int))
   (* (sqrt linear-roughness) mip-count))
