@@ -24,7 +24,7 @@
 			(v! 1 0 0)))
 	 (tangent-x (normalize (cross up-vector n)))
 	 (tangent-y (cross n tangent-x)))
-    ;; apparently tanget to world space
+    ;; apparently tangent to world space
     (+ (* tangent-x (x h))
        (* tangent-y (y h))
        (* n (z h)))))

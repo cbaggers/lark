@@ -37,7 +37,7 @@
 	 (l (normalize (+ (* tangent-x (y pre-l))
 			  (* tangent-y (x pre-l))
 			  (* n (z pre-l)))))
-	 (n·l (dot n l))
+	 (n·l (dot l n))
 	 (pdf (* n·l +inv-pi+)))
     (values l n·l pdf)))
 

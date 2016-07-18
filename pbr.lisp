@@ -273,12 +273,12 @@
 		       (cube :sampler-cube) (specular-cube :sampler-cube)
 		       (dfg :sampler-2d))
   (+ (s~ (evaluate-ibl-diffuse wnormal (v! 0 0 -1) n·v roughness cube dfg) :xyz)
-     (let ((linear-roughness 0.1)
-	   (r wnormal)
-	   (f0 (v3! 0.04))
-	   (f90 0.8s0))
+     (let ((linear-roughness roughness)
+     	   (r wnormal)
+     	   (f0 (v3! 0.04))
+     	   (f90 0.8s0))
        (evaluate-ibl-specular wnormal r n·v linear-roughness roughness
-			      f0 f90 specular-cube 4 dfg))))
+     			      f0 f90 specular-cube 4 dfg))))
 
 ;;----------------------------------------------------------------------
 
@@ -299,12 +299,13 @@
 	 (n·v (+ (abs (dot wnormal wview-dir))
 		 0.00001))) ;; biased to avoid artifacts)
     (setf gl-frag-depth (x (texture depth tc)))
-    (+ ;; (punctual-light-luminance
-       ;; 	wpos wnormal wview-dir n.v
-       ;; 	base-color roughness metallic ao
-       ;; 	light-origin light-radiance light-inv-sqr-att-radius)
-     (* base-color (evaluate-ibl wnormal n·v roughness
-				 diffuse-cube specular-cube dfg)))))
+    (+ (punctual-light-luminance
+       	wpos wnormal wview-dir n·v
+       	base-color roughness metallic ao
+       	light-origin light-radiance light-inv-sqr-att-radius)
+      ;; (* base-color (evaluate-ibl wnormal n·v roughness
+      ;; 				 diffuse-cube specular-cube dfg))
+      )))
 
 (def-g-> pbr-pass ()
   #'pass-through-vert my-pbr-analytic-light-frag)

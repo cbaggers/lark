@@ -89,10 +89,13 @@
   (let ((camera *camera*))
     (gl:clear :color-buffer-bit :depth-buffer-bit)
     (map-g-into dfg-fbo #'dfg-texture-pass *quad-stream*)
+    (generate-mipmaps (sampler-texture dfg-sampler))
     (map-g-into light-probe-fbo #'diffuse-sample-hdr-cube *quad-stream*
 		:value-multiplier 1s0 :cube qoob)
-    (map-g-into light-probe-fbo #'specular-sample-hdr-cube *quad-stream*
+    (generate-mipmaps (sampler-texture light-probe-sampler))
+    (map-g-into light-probe-specular-fbo #'specular-sample-hdr-cube *quad-stream*
 		:value-multiplier 1s0 :cube qoob :roughness 0.1)
+    (generate-mipmaps (sampler-texture light-probe-specular-sampler))
     (with-fbo-bound ((post-buff-fbo (get-post-buff)))
       (clear))
     (map nil λ(render-thing (update-thing _) camera)
