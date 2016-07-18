@@ -19,7 +19,7 @@
 	(norm (cepl.sdl2-image:load-image-to-texture
 	       normal-tex-path :srgb8-alpha8 t t))
 	(mat (cepl.sdl2-image:load-image-to-texture
-	      mat-tex-path :srgb8-alpha8 t t)))
+	      mat-tex-path :rgba8 t t)))
     (make-thing :model (yaksha:load-model filepath)
 		:base-sampler (sample base)
 		:normal-sampler (sample norm)
