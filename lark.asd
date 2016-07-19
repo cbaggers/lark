@@ -10,7 +10,8 @@
 			   #:classimp #:fn #:named-readtables #:cl-fad
 			   #:temporal-functions #:dendrite #:disposable
 			   #:structy-defclass #:swank.live
-			   #:filmic-tone-mapping-operators)
+			   #:filmic-tone-mapping-operators #:dirt
+			   #:nineveh)
   :components ((:file "package")
 
 	       ;; mesh and models
@@ -35,10 +36,12 @@
 	       ;; pbr
 	       (:file "types")
 	       (:file "pass-through")
-	       ;; (:file "importance-sample-cube-diffuse")
-	       ;; (:file "importance-sample-cube-specular")
+	       (:file "brdf")
+	       (:file "importance-sample-cube-diffuse")
+	       (:file "importance-sample-cube-specular")
+	       (:file "dfg-texture")
 	       (:file "pbr")
-	       ;; (:file "dfg-texture")
+
 
 	       ;; sky
 	       (:file "sky/sky")

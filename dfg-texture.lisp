@@ -1,6 +1,5 @@
 (in-package :lark)
 
-
 (defun-g integrate-dfg-only ((n·v :float) (roughness :float))
   (let ((sample-count (uint 1024))
 	(n (v! 0 0 1))

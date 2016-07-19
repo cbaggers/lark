@@ -3,6 +3,7 @@
 
 (defvar *started* nil)
 (defvar *game-state* nil)
+(defvar *catwalk* nil)
 
 (defun start-engine ()
   (unless *started*
@@ -12,31 +13,35 @@
 	  (map nil #'funcall *on-engine-init*))
     (setf *camera* (cepl.camera:make-camera))
     (setf (viewport-resolution (viewport *camera*)) (v! 1024 768))
+    (setf *catwalk*
+	  (sample
+	   (load-hdr-2d
+	    "/home/baggers/Code/lisp/lark/media/Factory_Catwalk/Factory_Catwalk_2k.hdr")))
     (setf *game-state*
 	  (make-game-state
 	   :things (list (make-sphere-thing
-			  (path "media/iron-rusted4/iron-rusted4-basecolor.png")
-			  (path "media/iron-rusted4/iron-rusted4-normal.png")
-			  (path "media/iron-rusted4/iron-rusted4-metalness.png")
-			  (path "media/iron-rusted4/iron-rusted4-roughness.png")
+			  (path "media/iron-rusted4/iron-rusted4-basecolor.png" t)
+			  (path "media/iron-rusted4/iron-rusted4-normal.png" t)
+			  (path "media/iron-rusted4/iron-rusted4-metalness.png" t)
+			  (path "media/iron-rusted4/iron-rusted4-roughness.png" t)
 			  :pos (v! 0 30 -120))
 			 (make-sphere-thing
-			  (path "media/bamboo-wood-semigloss-1/bamboo-wood-semigloss-albedo.png")
-			  (path "media/bamboo-wood-semigloss-1/bamboo-wood-semigloss-normal.png")
-			  (path "media/bamboo-wood-semigloss-1/bamboo-wood-semigloss-metal.png")
-			  (path "media/bamboo-wood-semigloss-1/bamboo-wood-semigloss-roughness.png")
+			  (path "media/bamboo-wood-semigloss-1/bamboo-wood-semigloss-albedo.png" t)
+			  (path "media/bamboo-wood-semigloss-1/bamboo-wood-semigloss-normal.png" t)
+			  (path "media/bamboo-wood-semigloss-1/bamboo-wood-semigloss-metal.png" t)
+			  (path "media/bamboo-wood-semigloss-1/bamboo-wood-semigloss-roughness.png" t)
 			  :pos (v! 50 -30 -120))
 			 ;; (make-sphere-thing
-			 ;;  (path "media/Titanium-Scuffed_b/Titanium-Scuffed_basecolor.png")
-			 ;;  (path "media/Titanium-Scuffed_b/Titanium-Scuffed_normal.png")
-			 ;;  (path "media/Titanium-Scuffed_b/Titanium-Scuffed_metallic.png")
-			 ;;  (path "media/Titanium-Scuffed_b/Titanium-Scuffed_roughness.png")
+			 ;;  (path "media/Titanium-Scuffed_b/Titanium-Scuffed_basecolor.png" t)
+			 ;;  (path "media/Titanium-Scuffed_b/Titanium-Scuffed_normal.png" t)
+			 ;;  (path "media/Titanium-Scuffed_b/Titanium-Scuffed_metallic.png" t)
+			 ;;  (path "media/Titanium-Scuffed_b/Titanium-Scuffed_roughness.png" t)
 			 ;;  :pos (v! 30 30 -120))
 			 (make-sphere-thing
-			  (path "media/scuffed-plastic-1/scuffed-plastic-alb.png")
-			  (path "media/scuffed-plastic-1/scuffed-plastic-normal.png")
-			  (path "media/scuffed-plastic-1/scuffed-plastic-metal.png")
-			  (path "media/scuffed-plastic-1/scuffed-plastic-rough.png")
+			  (path "media/scuffed-plastic-1/scuffed-plastic-alb.png" t)
+			  (path "media/scuffed-plastic-1/scuffed-plastic-normal.png" t)
+			  (path "media/scuffed-plastic-1/scuffed-plastic-metal.png" t)
+			  (path "media/scuffed-plastic-1/scuffed-plastic-rough.png" t)
 			  :pos (v! -50 -30 -120)))))
     (skitter:listen-to λ(window-size-callback _ _1) (skitter:window 0) :size)
     (setf *started* t)))
