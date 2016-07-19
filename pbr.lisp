@@ -125,8 +125,10 @@
 			    &uniform (base-tex :sampler-2d)
 			    (norm-tex :sampler-2d)
 			    (mat-tex :sampler-2d))
-  (let ((mat (texture mat-tex uv))
-	(wnormal (* btn-mat (s~ (texture norm-tex uv) :xyz))))
+  (let* ((mat (texture mat-tex uv))
+	 ;;(norm (- (* (s~ (texture norm-tex uv) :xyz) 2) (v3! 1)))
+	 (norm (s~ (texture norm-tex uv) :xyz))
+	 (wnormal (* btn-mat norm)))
     (values world-pos
 	    wnormal
 	    (s~ (texture base-tex uv) :xyz)
@@ -219,7 +221,7 @@
 ;;----------------------------------------------------------------------
 
 
-(defun-g my-pbr-analytic-light-frag
+(defun-g material-pbr-pass
     ((tc :vec2) &uniform (wview-dir :vec3) (light-origin :vec3)
      (light-radius :float) (light-radiance :vec3) (pos-sampler :sampler-2d)
      (normal-sampler :sampler-2d) (base-sampler :sampler-2d)
@@ -260,7 +262,7 @@
 
 
 (def-g-> pbr-pass ()
-  #'pass-through-vert my-pbr-analytic-light-frag)
+  #'pass-through-vert #'material-pbr-pass)
 
 
 ;;----------------------------------------------------------------------
