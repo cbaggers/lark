@@ -1,7 +1,10 @@
 (in-package #:lark)
 
-(defun path (filepath)
-  (asdf:system-relative-pathname :lark filepath))
+(defun path (filepath &optional as-string)
+  (let ((r (asdf:system-relative-pathname :lark filepath)))
+    (if as-string
+	(namestring r)
+	r)))
 
 (defvar *backup-tex* nil)
 (defvar *backup-tex-sampler* nil)

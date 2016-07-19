@@ -35,10 +35,10 @@
 	       ;; pbr
 	       (:file "types")
 	       (:file "pass-through")
-	       (:file "importance-sample-cube-diffuse")
-	       (:file "importance-sample-cube-specular")
+	       ;; (:file "importance-sample-cube-diffuse")
+	       ;; (:file "importance-sample-cube-specular")
 	       (:file "pbr")
-	       (:file "dfg-texture")
+	       ;; (:file "dfg-texture")
 
 	       ;; sky
 	       (:file "sky/sky")

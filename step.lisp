@@ -12,9 +12,10 @@
   (when (skitter:key-down-p key.2)
     (setf auto-rot nil))
 
-  ;; hacky rotation
-  (let ((time (/ (now) 10200))
-	(thing (first (things *game-state*))))
+  (map nil #'step-thing (things *game-state*)))
+
+(defun step-thing (thing)
+  (let ((time (/ (now) 10200)))
     (if auto-rot
 	(setf (rot thing) (q:from-mat3
 			   (m3:rotation-from-euler

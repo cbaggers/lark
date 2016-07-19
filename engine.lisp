@@ -14,11 +14,30 @@
     (setf (viewport-resolution (viewport *camera*)) (v! 1024 768))
     (setf *game-state*
 	  (make-game-state
-	   :things (list (load-thing
-			  "/home/baggers/Code/lisp/lark/media/Cerberus_by_Andrew_Maximov/Cerberus_LP.FBX"
-			  "/home/baggers/Code/lisp/lark/media/Cerberus_by_Andrew_Maximov/Cerberus_A.png"
-			  "/home/baggers/Code/lisp/lark/media/Cerberus_by_Andrew_Maximov/Cerberus_N.png"
-			  "/home/baggers/Code/lisp/lark/media/Cerberus_by_Andrew_Maximov/Cerberus_M_R.png"))))
+	   :things (list (make-sphere-thing
+			  (path "media/iron-rusted4/iron-rusted4-basecolor.png")
+			  (path "media/iron-rusted4/iron-rusted4-normal.png")
+			  (path "media/iron-rusted4/iron-rusted4-metalness.png")
+			  (path "media/iron-rusted4/iron-rusted4-roughness.png")
+			  :pos (v! 0 30 -120))
+			 (make-sphere-thing
+			  (path "media/bamboo-wood-semigloss-1/bamboo-wood-semigloss-albedo.png")
+			  (path "media/bamboo-wood-semigloss-1/bamboo-wood-semigloss-normal.png")
+			  (path "media/bamboo-wood-semigloss-1/bamboo-wood-semigloss-metal.png")
+			  (path "media/bamboo-wood-semigloss-1/bamboo-wood-semigloss-roughness.png")
+			  :pos (v! 50 -30 -120))
+			 ;; (make-sphere-thing
+			 ;;  (path "media/Titanium-Scuffed_b/Titanium-Scuffed_basecolor.png")
+			 ;;  (path "media/Titanium-Scuffed_b/Titanium-Scuffed_normal.png")
+			 ;;  (path "media/Titanium-Scuffed_b/Titanium-Scuffed_metallic.png")
+			 ;;  (path "media/Titanium-Scuffed_b/Titanium-Scuffed_roughness.png")
+			 ;;  :pos (v! 30 30 -120))
+			 (make-sphere-thing
+			  (path "media/scuffed-plastic-1/scuffed-plastic-alb.png")
+			  (path "media/scuffed-plastic-1/scuffed-plastic-normal.png")
+			  (path "media/scuffed-plastic-1/scuffed-plastic-metal.png")
+			  (path "media/scuffed-plastic-1/scuffed-plastic-rough.png")
+			  :pos (v! -50 -30 -120)))))
     (skitter:listen-to λ(window-size-callback _ _1) (skitter:window 0) :size)
     (setf *started* t)))
 

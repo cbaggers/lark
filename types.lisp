@@ -11,7 +11,7 @@
 ;;----------------------------------------------------------------------
 ;; GBuffer
 ;;
-;; rgb16f pos
+;; rgb32f pos
 ;; rgb16f normal
 ;; rgb8 base-color
 ;; rgb8 metallic, roughness, AO
@@ -28,7 +28,7 @@
   ;; positions normals albedo specular
   (assert (listp dimensions))
   (let* ((dim (or dimensions (viewport-dimensions (current-viewport))))
-	 (fbo (make-fbo `(0 :dimensions ,dim :element-type :rgb16f)
+	 (fbo (make-fbo `(0 :dimensions ,dim :element-type :rgb32f)
 	   		`(1 :dimensions ,dim :element-type :rgb16f)
 	   		`(2 :dimensions ,dim :element-type :rgb8)
 	   		`(3 :dimensions ,dim :element-type :rgb8)
