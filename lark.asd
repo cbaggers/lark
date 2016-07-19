@@ -27,6 +27,7 @@
 	       (:file "mouse")
 
 	       ;;
+	       (:file "time")
 	       (:file "camera")
 	       (:file "thing")
 	       (:file "primitives")
@@ -43,4 +44,7 @@
 	       (:file "sky/sky")
 
 	       ;; hmm
+	       (:file "resize")
+	       (:file "step")
+	       (:file "debug")
 	       (:file "engine")))

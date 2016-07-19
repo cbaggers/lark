@@ -1,86 +1,5 @@
 (in-package :lark)
-
-(defvar qoob nil)
-
-(defmethod free ((gb gbuffer))
-  ;;(free (gbuffer-fbo gbuff))
-  (free (sampler-texture (gbuffer-pos-sampler gb)))
-  (free (sampler-texture (gbuffer-norm-sampler gb)))
-  (free (sampler-texture (gbuffer-base-sampler gb)))
-  (free (sampler-texture (gbuffer-mat-sampler gb)))
-  gb)
-
-(defun make-gbuffer (&optional dimensions)
-  ;; positions normals albedo specular
-  (assert (listp dimensions))
-  (let* ((dim (or dimensions (viewport-dimensions (current-viewport))))
-	 (fbo (make-fbo `(0 :dimensions ,dim :element-type :rgb16f)
-	   		`(1 :dimensions ,dim :element-type :rgb16f)
-	   		`(2 :dimensions ,dim :element-type :rgb8)
-	   		`(3 :dimensions ,dim :element-type :rgb8)
-	   		`(:d :dimensions ,dim))))
-    (%make-gbuffer
-     :fbo fbo
-     :pos-sampler (sample (attachment-tex fbo 0))
-     :norm-sampler (sample (attachment-tex fbo 1))
-     :base-sampler (sample (attachment-tex fbo 2))
-     :mat-sampler (sample (attachment-tex fbo 3))
-     :depth-sampler (sample (attachment-tex fbo :d)))))
-
-(defun resize-gbuffers (dimensions)
-  (setf *gb* (make-gbuffer dimensions))
-  (setf *post-buff* (make-post-buff dimensions))
-  t)
-
-(defun make-post-buff (&optional dimensions)
-  (assert (listp dimensions))
-  (let* ((dim (or dimensions (viewport-dimensions (current-viewport))))
-	 (fbo (make-fbo `(0 :dimensions ,dim :element-type :rgb16f)
-			`(:d :dimensions ,dim))))
-    (%make-post-buff :fbo fbo
-		     :color-sampler (sample (attachment-tex fbo 0))
-		     :depth-sampler (sample (attachment-tex fbo :d)))))
-
-(defvar *gb* nil)
-(defvar *post-buff* nil)
-
-(defun get-gbuffer ()
-  (or *gb* (setf *gb* (make-gbuffer))))
-
-(defun get-post-buff ()
-  (or *post-buff* (setf *post-buff* (make-post-buff))))
-
-;;----------------------------------------------------------------------
-
-(defmacro bind-vec (vars vec &body body)
-  (labels ((get-func (i var)
-	     (let* ((var (if (listp var) var (list var)))
-		    (f (second var))
-		    (var (first var)))
-	       `(,var ,(if f
-			   (ecase f (:x 'x) (:y 'y) (:z 'z) (:w 'w))
-			   (elt '(x y z w) i))))))
-    (let ((v (gensym "vec")))
-      `(let* ((,v ,vec)
-	      ,@(loop :for p :in vars :for i :from 0
-		   :for (c f) := (get-func i p)
-		   :collect `(,c (,f ,v))))
-	 ,@body))))
-
-(defmacro-g bind-vec (vars vec &body body)
-  (labels ((get-func (i var)
-	     (let* ((var (if (listp var) var (list var)))
-		    (f (second var))
-		    (var (first var)))
-	       `(,var ,(if f
-			   (ecase f (:x 'x) (:y 'y) (:z 'z) (:w 'w))
-			   (elt '(x y z w) i))))))
-    (let ((v (gensym "vec")))
-      `(let* ((,v ,vec)
-	      ,@(loop :for p :in vars :for i :from 0
-		   :for (c f) := (get-func i p)
-		   :collect `(,c (,f ,v))))
-	 ,@body))))
+(in-readtable fn:fn-reader)
 
 ;;----------------------------------------------------------------------
 
@@ -96,6 +15,7 @@
      (* (- (v3! f90) f0)
 	(pow (- 1s0 u) 5s0))))
 
+
 (defun-g disney-diffuse ((n·v :float) (n·l :float) (l·h :float)
 			 (linear-roughness :float))
   ;; with renormalization of it's energy
@@ -109,14 +29,6 @@
     (* light-scatter view-scatter energy-factor)))
 
 
-;; Original formulation of G_SmithGGX Correlated
-;;
-;; lambda_v = ( -1 + sqrt ( alphaG2 * (1 - NdotL2 ) / NdotL2 + 1) ) * 0.5 f ;
-;; lambda_l = ( -1 + sqrt ( alphaG2 * (1 - NdotV2 ) / NdotV2 + 1) ) * 0.5 f ;
-;; G_SmithGGXCorrelated = 1 / (1 + lambda_v + lambda_l);
-;; V_SmithGGXCorrelated = G_SmithGGXCorrelated / (4.0 f * N·V * N·L ) ;
-;;
-;; below is the optimized version
 (defun-g ggx-geom-smith-correlated ((n·v :float) (n·l :float) (α :float))
   (let* ((α² (* α α))
 	 (ggx-v-λ (* n·l (sqrt (+ (* (+ (* (- n·v) α²)
@@ -147,6 +59,7 @@
 	 (smooth-factor (saturate (- 1.0 (* factor factor)))))
     (* smooth-factor smooth-factor)))
 
+
 (defun-g get-distance-attenuation ((unormalized-light-vec :vec3)
 				   (inverse-square-attenuation-radius :float))
   (let* ((distance² (dot unormalized-light-vec unormalized-light-vec))
@@ -155,9 +68,10 @@
 		    distance²
 		    inverse-square-attenuation-radius))))
 
+
 (defun-g punctual-light-luminance
     ((wpos :vec3) (normal :vec3) (view-dir :vec3) (n·v :float)
-     (base-color :vec3) (roughness :float) (metallic :float) (ao :float)
+     (base-color :vec3) (linear-roughness :float) (metallic :float) (ao :float)
      (light-pos :vec3) (light-color :vec3) (light-inv-sqr-att-radius :float))
   ;;
   (let* ((unormalized-light-vec (- light-pos wpos))
@@ -170,7 +84,6 @@
 	 ;;
 	 (albedo (mix base-color (v3! 0) metallic))
 	 ;;
-	 (linear-roughness roughness)
 	 (roughness (* linear-roughness linear-roughness))
 	 ;;
 	 ;; frostbite parameterizes this calling it specular
@@ -189,14 +102,14 @@
     (* final
        n·l
        light-color
-       attenuation
-       )))
+       attenuation)))
 
 ;;----------------------------------------------------------------------
 
+
 (defun-g pack-gbuffer-vert ((vert yaksha:vertex) &uniform (model-space vec-space))
   (let* ((m->w (m4:to-mat3 (get-transform model-space *world-space*)))
-	 (normal (* m->w (- (* (yaksha:normal vert) 2) (v! 1 1 1))))
+	 (normal (* m->w (yaksha:normal vert)))
 	 (tangent (* m->w (yaksha:tangent vert)))
 	 (bitangent (cross normal tangent))
 	 (btn-mat (m! tangent bitangent normal)))
@@ -206,6 +119,7 @@
 	      (in model-space (sv! (pos vert) 1.0)))
 	    btn-mat
 	    (yaksha:uv vert))))
+
 
 (defun-g pack-gbuffer-frag ((world-pos :vec4) (btn-mat :mat3) (uv :vec2)
 			    &uniform (base-tex :sampler-2d)
@@ -222,16 +136,20 @@
 (def-g-> pack-gbuffer-pass ()
   #'pack-gbuffer-vert #'pack-gbuffer-frag)
 
+
 ;;----------------------------------------------------------------------
+
 
 (defun-g linear-roughness-to-mip-level ((linear-roughness :float)
 					(mip-count :int))
   (* (sqrt linear-roughness) mip-count))
 
+
 (defun-g get-specular-dominant-dir ((n :vec3) (r :vec3) (roughness :float))
   (let* ((smoothness (saturate (- 1 roughness)))
 	 (lerp-factor (* smoothness (+ (sqrt smoothness) roughness))))
     (mix n r lerp-factor)))
+
 
 (defun-g evaluate-ibl-specular ((n :vec3) (r :vec3) (n·v :float)
 				(linear-roughness :float) (roughness :float)
@@ -246,10 +164,11 @@
 						   ld-mip-max-level))
 	 (pre-ld (texture-lod cube dominant-r mip-level))
 	 (pre-dfg (s~ (texture dfg (v! n·v roughness)) :xy)))
-    ;; usual follow is (v! .. (w pre-ld)) but we arent using alpha
+    ;; usually the following is (v! .. (w pre-ld)) but we arent using alpha
     (* (+ (* f0 (x pre-dfg))
 	  (* (v3! f90) (y pre-dfg)))
        (s~ pre-ld :xyz))))
+
 
 (defun-g get-diffuse-dominant-dir ((n :vec3) (v :vec3) (n·v :float)
 				   (roughness :float))
@@ -265,134 +184,158 @@
   (let* ((dominant-n (get-diffuse-dominant-dir n v n·v roughness))
 	 (diffuse-lighting (texture cube dominant-n))
 	 (diff-f (z (texture dfg (v! n·v roughness)))))
-    (v! (* (s~ diffuse-lighting :xyz) diff-f) (w diffuse-lighting))))
+    ;; as with specular, we arent using alpha
+    (* (s~ diffuse-lighting :xyz) diff-f)))
 
 
 
-(defun-g evaluate-ibl ((wnormal :vec3) (n·v :float) (roughness :float)
-		       (cube :sampler-cube) (specular-cube :sampler-cube)
-		       (dfg :sampler-2d))
-  (+ (s~ (evaluate-ibl-diffuse wnormal (v! 0 0 -1) n·v roughness cube dfg) :xyz)
-     (let ((linear-roughness roughness)
-     	   (r wnormal)
-     	   (f0 (v3! 0.04))
-     	   (f90 0.8s0))
-       (evaluate-ibl-specular wnormal r n·v linear-roughness roughness
-     			      f0 f90 specular-cube 4 dfg))))
+;; I've been messing with this
+(defun-g evaluate-ibl ((wnormal :vec3) (wview-dir :vec3) (n·v :float)
+		       (linear-roughness :float) (cube :sampler-cube)
+		       (specular-cube :sampler-cube) (dfg :sampler-2d)
+		       (base-color :vec3) (metallic :float))
+  (let* (;; these 2 are copied from the analytical light
+	 ;; could be wrong assumption. For example it looked way better as
+	 ;; (roughness linear-roughness)
+	 ;; (linear-roughness (sqrt roughness))
+	 (roughness (* linear-roughness linear-roughness))
+	 (albedo (mix base-color (v3! 0) metallic))
+
+	 ;; lighting time
+	 (fd (evaluate-ibl-diffuse wnormal wview-dir n·v roughness cube dfg))
+	 (fr (let* (;; this should be the reflected vec..but I was lazy
+		    (r wnormal)
+		    ;; again stole these two from the analytical light
+		    (f0 (mix (v3! 0.04) base-color metallic))
+		    (f90 (saturate (* 50s0 (dot f0 (v3! 0.33))))))
+	       ;; the 7 is the num of mipmaps, I shoved that there as I dont
+	       ;; know what I'm doing
+	       (evaluate-ibl-specular wnormal r n·v linear-roughness roughness
+				      f0 f90 specular-cube 7 dfg))))
+    ;; again taken from analytical. who knows what to do here?
+    (+ (* albedo fd) (/ fr 100))))
+
 
 ;;----------------------------------------------------------------------
+
 
 (defun-g my-pbr-analytic-light-frag
     ((tc :vec2) &uniform (wview-dir :vec3) (light-origin :vec3)
      (light-radius :float) (light-radiance :vec3) (pos-sampler :sampler-2d)
      (normal-sampler :sampler-2d) (base-sampler :sampler-2d)
-     (mat-sampler :sampler-2d) (diffuse-cube :sampler-cube) (depth :sampler-2d)
-     (dfg :sampler-2d) (specular-cube :sampler-cube))
-  (let* ((wpos (s~ (texture pos-sampler tc) :xyz))
+     (mat-sampler :sampler-2d) (diffuse-cube :sampler-cube)
+     (dfg :sampler-2d) (specular-cube :sampler-cube) (depth :sampler-2d))
+  ;; This is the real meat :)
+  (let* (;; unpack the gbuffer
+	 (wpos (s~ (texture pos-sampler tc) :xyz))
 	 (wnormal (normalize (s~ (texture normal-sampler tc) :xyz)))
 	 (base-color (s~ (texture base-sampler tc) :xyz))
 	 (material (texture mat-sampler tc))
 	 (metallic (x material))
-	 (roughness (y material))
+	 (roughness (y material)) ;; [try sqrt'ing this guy]
 	 (ao 1.0)
+
+	 ;; is this right?
 	 (light-inv-sqr-att-radius (/ 1 (pow light-radius 2)))
-	 (n·v (+ (abs (dot wnormal wview-dir))
-		 0.00001))) ;; biased to avoid artifacts)
+
+	 ;; this guy is needed everywhere
+	 ;; the 0.00001 is the bias to avoid artifacts
+	 (n·v (+ (abs (dot wnormal wview-dir)) 0.00001))
+
+	 ;; sum the analytical & ibl light
+	 (lin-final (+ (punctual-light-luminance
+		       	wpos wnormal wview-dir n·v
+		       	base-color roughness metallic ao
+		       	light-origin light-radiance light-inv-sqr-att-radius)
+		       (evaluate-ibl
+		       	wnormal wview-dir n·v roughness
+		       	diffuse-cube specular-cube dfg
+		       	base-color metallic))))
+
+    ;; set the depth so the skybox works
     (setf gl-frag-depth (x (texture depth tc)))
-    (+ (punctual-light-luminance
-       	wpos wnormal wview-dir n·v
-       	base-color roughness metallic ao
-       	light-origin light-radiance light-inv-sqr-att-radius)
-      ;; (* base-color (evaluate-ibl wnormal n·v roughness
-      ;; 				 diffuse-cube specular-cube dfg))
-      )))
+
+    ;; tonemap and make non-linear again
+    (tone-map-uncharted2 lin-final 6s0 1s0)))
+
 
 (def-g-> pbr-pass ()
   #'pass-through-vert my-pbr-analytic-light-frag)
 
-;;----------------------------------------------------------------------
-
-(defun-g my-pbr-post-prog-frag
-    ((tex-coord :vec2) &uniform (linear-final :sampler-2d))
-  (tone-map-uncharted2
-   (s~ (texture linear-final tex-coord) :xyz)
-   8s0
-   1s0))
-
-(def-g-> pbr-post-pass ()
-  #'pass-through-vert my-pbr-post-prog-frag)
 
 ;;----------------------------------------------------------------------
 
-(defun render-thing (thing camera)
-  ;; - mipmaps
-  ;; - sampling from sphere
-  (let ((gb (get-gbuffer))
-  	(pb (get-post-buff)))
+
+(defun render-thing (thing camera render-state)
+  (with-slots (light-probe-diffuse light-probe-specular gbuffer dfg)
+      render-state
+
+    ;; Using the camera makes sure the space-system knows which space is
+    ;; cam space and also sets the viewport
     (using-camera camera
-      (with-fbo-bound ((gbuffer-fbo gb))
+      ;; bind the gbuffer fbo (no need to set the viewport again)
+      (with-fbo-bound ((fbo gbuffer) :with-viewport nil)
+	;; clear the bound fbo
       	(clear)
+	;; populate the gbuffer
 	(loop :for mesh :in (yaksha:model-meshes (model thing)) :do
 	   (map-g #'pack-gbuffer-pass (yaksha:mesh-stream mesh)
-		  :model-space (in-space thing)
+		  :model-space (model-space thing)
 		  :base-tex (base-sampler thing)
 		  :norm-tex (normal-sampler thing)
 		  :mat-tex (material-sampler thing))))
-      (let* ((light-pos (v! -4 10 0)))
-	(with-fbo-bound ((post-buff-fbo pb))
-	  (map-g #'pbr-pass *quad-stream*
-		 :wview-dir (v! 0 0 -1)
-		 :light-origin light-pos
-		 :light-radius 200s0
-		 :light-radiance (v! 2000.3 2000.3 2000.3)
-		 :pos-sampler (gbuffer-pos-sampler gb)
-		 :normal-sampler (gbuffer-norm-sampler gb)
-		 :base-sampler (gbuffer-base-sampler gb)
-		 :mat-sampler (gbuffer-mat-sampler gb)
-		 :diffuse-cube light-probe-sampler
-		 ;;:specular-cube light-probe-specular-sampler
-		 :depth (gbuffer-depth-sampler gb)
-		 :dfg dfg-sampler))))))
 
-(defun post-proc (camera)
-  (using-camera camera
-    (let ((pb (get-post-buff)))
-      (map-g #'pbr-post-pass *quad-stream*
-	     :linear-final (post-buff-color-sampler pb)))))
+      ;; do the pbr pass, rendering the the default fbo
+      (let* ((light-pos (v! -4 10 -30)))
+	(map-g #'pbr-pass *quad-stream*
+	       :wview-dir (v! 0 0 -1)
+	       :light-origin light-pos
+	       :light-radius 200s0
+	       :light-radiance (v! 2000.3 2000.3 2000.3)
+	       :pos-sampler (pos-sampler gbuffer)
+	       :normal-sampler (norm-sampler gbuffer)
+	       :base-sampler (base-sampler gbuffer)
+	       :mat-sampler (mat-sampler gbuffer)
+	       :diffuse-cube (sampler light-probe-diffuse)
+	       :specular-cube (sampler light-probe-specular)
+	       :dfg (sampler dfg)
+	       :depth (depth-sampler gbuffer))))))
+
 
 ;;----------------------------------------------------------------------
 
-(defun-g debug-draw-sampler-frag ((tc :vec2) &uniform (s :sampler-2d))
-  (texture s tc 0))
+(defun render (camera game-state)
+  (let* ((render-state (render-state game-state)))
+    (with-slots (dfg light-probe-diffuse light-probe-specular env-map)
+	render-state
 
-(def-g-> debug-draw-sampler ()
-  #'pass-through-vert #'debug-draw-sampler-frag)
+      ;; clear the default fbo
+      (gl:clear :color-buffer-bit :depth-buffer-bit)
 
-(defun draw-sampler (sampler)
-  (cls)
-  (map-g #'debug-draw-sampler *quad-stream* :s sampler)
-  (swap))
+      ;; populate the dfg LUT
+      (map-g-into (fbo dfg)
+		  #'dfg-texture-pass *quad-stream*)
 
-(defun-g green-frag ((tc :vec2) &uniform (s :sampler-2d))
-  (v! 0 1 0 1))
+      ;; precalc the diffuse portion of the IBL
+      (map-g-into (fbo light-probe-diffuse)
+		  #'diffuse-sample-hdr-cube *quad-stream*
+		  :value-multiplier 1s0 :cube env-map)
 
-(def-g-> green-pass ()
-  #'pass-through-vert #'green-frag)
+      (generate-mipmaps (cube light-probe-diffuse))
 
-(defun green ()
-  (map-g #'green-pass *quad-stream*))
+      ;; precalc the specular portion of the IBL
+      (map-g-into (fbo light-probe-specular)
+		  #'specular-sample-hdr-cube *quad-stream*
+		  :value-multiplier 1s0 :cube env-map :roughness 0.1)
 
-;; (setf (pos (first (things *game-state*))) (v! 0 0 -120))
+      (generate-mipmaps (cube light-probe-specular))
 
-;;----------------------------------------------------------------------
+      ;; render all the shiz
+      (map nil λ(render-thing (update-thing _) camera render-state)
+	   (things *game-state*))
 
-(defun down-to-nearest (x n)
-  (* (floor x n) n))
+      ;; skybox time
+      (render-sky camera render-state)
 
-(defun reshape (new-resolution)
-  (let ((new-resolution (v! (down-to-nearest (v:x new-resolution) 8)
-			    (down-to-nearest (v:y new-resolution) 8)))
-	(new-dimensions (list (v:x new-resolution) (v:y new-resolution))))
-    ;;(format t "~%New Resolution: ~a~%" new-resolution)
-    (setf (viewport-resolution (camera-viewport *camera*)) new-resolution)
-    (resize-gbuffers new-dimensions)))
+      ;; flip dem buffers
+      (swap))))

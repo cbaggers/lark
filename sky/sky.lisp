@@ -17,25 +17,23 @@
 	    vert)))
 
 (defun-g frag ((tc :vec3) &uniform (tex :sampler-cube))
-  (/ (texture tex tc) 100))
+  (texture tex tc))
 
 (def-g-> skybox () #'vert #'frag)
 
-(defun render-sky (camera)
+(defun render-sky (camera render-state)
   (when *sky-enabled*
     (gl:depth-func :lequal)
     (using-camera camera
-      (with-fbo-bound ((post-buff-fbo (get-post-buff)))
-	(let* ((transform (cepl.space:get-transform
-			   *world-space*
-			   (cepl.camera.base::base-camera-space camera)))
-	       (no-translate (m4:from-mat3 (m4:to-mat3 transform)))
-	       (to-clip (cepl.space:get-transform
-			 (cepl.camera.base::base-camera-space camera)
-			 *clip-space*)))
-	  (map-g #'skybox *skybox-stream*
-		 :tex qoob;; *sky-cube-sampler*
-		 :to-cam-space (m4:* to-clip no-translate)))))
+      (let* ((transform (cepl.space:get-transform
+			 *world-space*
+			 (cepl.camera.base::base-camera-space camera)))
+	     (to-clip (cepl.space:get-transform
+		       (cepl.camera.base::base-camera-space camera)
+		       *clip-space*)))
+	(map-g #'skybox *skybox-stream*
+	       :tex (env-map render-state) ;; *sky-cube-sampler*
+	       :to-cam-space (m4:* to-clip transform))))
     (gl:depth-func :less)))
 
 (defun make-cubemap-tex (&rest paths)
