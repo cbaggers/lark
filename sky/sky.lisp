@@ -17,23 +17,38 @@
 	    vert)))
 
 (defun-g frag ((tc :vec3) &uniform (tex :sampler-cube))
-  (texture tex tc))
+  (texture tex (normalize tc)))
+
+(defun-g sky-frag-rect ((tc :vec3) &uniform (tex :sampler-2d))
+  (sample-equirectangular-tex tex (normalize tc)))
 
 (def-g-> skybox () #'vert #'frag)
 
+(def-g-> skybox-rect () #'vert #'sky-frag-rect)
+
 (defun render-sky (camera render-state)
+  (declare (ignorable render-state))
   (when *sky-enabled*
     (gl:depth-func :lequal)
     (using-camera camera
-      (let* ((transform (cepl.space:get-transform
-			 *world-space*
-			 (cepl.camera.base::base-camera-space camera)))
+      (let* (;; (transform (cepl.space:get-transform
+	     ;; 		 *world-space*
+	     ;; 		 (cepl.camera.base::base-camera-space camera)))
+	     (transform (m4:* (m4:translation (v! 0 0 0))
+			      (m4:rotation-x 0)))
 	     (to-clip (cepl.space:get-transform
 		       (cepl.camera.base::base-camera-space camera)
 		       *clip-space*)))
-	(map-g #'skybox *skybox-stream*
-	       :tex (env-map render-state) ;; *sky-cube-sampler*
-	       :to-cam-space (m4:* to-clip transform))))
+	;; (map-g #'skybox *skybox-stream*
+	;;        :tex (env-map render-state)
+	;;        :to-cam-space (m4:* to-clip transform))
+	;; (map-g #'skybox *skybox-stream*
+	;;        :tex (sampler (slot-value (render-state *game-state*) 'light-probe-diffuse))
+	;;        :to-cam-space (m4:* to-clip transform))
+	(map-g #'skybox-rect *skybox-stream*
+	       :tex *catwalk* ;; *sky-cube-sampler*
+	       :to-cam-space (m4:* to-clip transform))
+	))
     (gl:depth-func :less)))
 
 (defun make-cubemap-tex (&rest paths)

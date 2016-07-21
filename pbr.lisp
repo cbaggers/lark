@@ -37,6 +37,7 @@
     (values world-pos
 	    wnormal
 	    (s~ (texture base-tex uv) :xyz)
+	    ;;(nineveh::mipmap-level->grey base-tex uv)
 	    (v! met rough 0))))
 
 
@@ -93,11 +94,10 @@
 
 
 (defun-g evaluate-ibl-diffuse ((n :vec3) (v :vec3) (n·v :float)
-			       (roughness :float) (eq-rec :sampler-2d)
+			       (roughness :float) (lp-cube :sampler-cube)
 			       (dfg :sampler-2d))
   (let* ((dominant-n (get-diffuse-dominant-dir n v n·v roughness))
-	 ;;(diffuse-lighting (texture cube dominant-n))
-	 (diffuse-lighting (sample-equirectangular-tex eq-rec dominant-n))
+	 (diffuse-lighting (texture lp-cube dominant-n))
 	 (diff-f (z (texture dfg (v! n·v roughness)))))
     ;; as with specular, we arent using alpha
     (* (s~ diffuse-lighting :xyz) diff-f)))
@@ -114,15 +114,14 @@
 
 	 ;; lighting time
 	 (fd (evaluate-ibl-diffuse wnormal wview-dir n·v roughness
-				   eq-rec dfg))
-	 (fr (let* (;; this should be the reflected vec..but I was lazy
-	 	    (r reflect-vec)
-	 	    ;; again stole these two from the analytical light
+				   diffuse-lp-cube dfg))
+	 (fr (let* (;; again stole these two from the analytical light
 	 	    (f0 (mix (v3! 0.04) base-color metallic))
 	 	    (f90 (saturate (* 50s0 (dot f0 (v3! 0.33))))))
 	       ;; the 7 is the num of mipmaps, I shoved that there as I dont
 	       ;; know what I'm doing
-	       (evaluate-ibl-specular wnormal r n·v linear-roughness roughness
+	       (evaluate-ibl-specular wnormal reflect-vec n·v
+				      linear-roughness roughness
 	 			      f0 f90 specular-lp-cube 7 dfg)))
 	 )
     ;; again taken from analytical. who knows what to do here?
@@ -191,15 +190,17 @@
 				linear-roughness
 				roughness
 				metallic))
-	 (final (+ ;;plight
-		   ibl
+	 (final (+ plight
+		   ;;ibl
 		   )))
 
     ;; set the depth so the skybox works
     (setf gl-frag-depth (x (texture depth tc)))
 
     ;;(pow final (v3! (/ 1 2.2)))
-    (tone-map-uncharted2 final 1s0 1s0)))
+    (tone-map-uncharted2 final 1s0 1s0)
+    ;;albedo
+    ))
 
 (def-g-> some-shit-pass ()
   #'pass-through-vert #'some-shit-frag)
@@ -229,17 +230,23 @@
       (gl:clear :color-buffer-bit :depth-buffer-bit)
 
       ;; populate the dfg LUT
+      (clear-fbo (fbo dfg))
       (map-g-into (fbo dfg)
       		  #'dfg-texture-pass *quad-stream*)
 
       ;; precalc the diffuse portion of the IBL
+      (clear-fbo (fbo light-probe-diffuse))
+      ;; (map-g-into (fbo light-probe-diffuse)
+      ;; 		  #'diffuse-sample-hdr-cube *quad-stream*
+      ;; 		  :value-multiplier 1s0 :cube env-map)
       (map-g-into (fbo light-probe-diffuse)
-      		  #'diffuse-sample-hdr-cube *quad-stream*
-      		  :value-multiplier 1s0 :cube env-map)
+      		  #'diffuse-sample-hdr-2d *quad-stream*
+      		  :value-multiplier 1s0 :tex *catwalk*)
 
       (generate-mipmaps (cube light-probe-diffuse))
 
       ;; precalc the specular portion of the IBL
+      (clear-fbo (fbo light-probe-specular))
       (map-g-into (fbo light-probe-specular)
       		  #'specular-sample-hdr-cube *quad-stream*
       		  :value-multiplier 1s0 :cube env-map :roughness 0.1)
@@ -250,7 +257,7 @@
       (clear-fbo (fbo gbuffer))
 
       (map nil λ(render-thing (update-thing _) camera render-state)
-	   (things *game-state*))
+      	   (things *game-state*))
 
       (using-camera camera
 	(map-g #'some-shit-pass *quad-stream*

@@ -22,8 +22,8 @@
 			(yaksha:make-mesh :stream cached-gpu-data
 					  :textures nil)))))
 
-(defun sphere-data (&key (radius 0.5) (lines-of-latitude 100)
-                      (lines-of-longitude 100) (normals t) (tex-coords t))
+(defun sphere-data (&key (radius 0.5) (lines-of-latitude 30)
+                      (lines-of-longitude 30) (normals t) (tex-coords t))
   (declare (type (unsigned-byte 8) lines-of-longitude lines-of-latitude))
   ;; latitude  -  horizontal
   ;; longitude -  vertical
