@@ -16,7 +16,7 @@
     (setf *catwalk*
 	  (sample
 	   (load-hdr-2d
-	    "/home/baggers/Code/lisp/lark/media/Factory_Catwalk/Factory_Catwalk_2k.hdr")))
+        (path "media/Factory_Catwalk/Factory_Catwalk_2k.hdr" t))))
     (setf *game-state*
 	  (make-game-state
 	   :things (list (make-sphere-thing

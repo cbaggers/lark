@@ -89,4 +89,4 @@
   (light-probe-specular (make-light-probe))
   (gbuffer (make-gbuffer))
   (env-map (sample (load-hdr-cross-texture
-		    "/home/baggers/Code/lisp/lark/media/galileo_cross.hdr"))))
+                    (path "media/galileo_cross.hdr" t)))))
