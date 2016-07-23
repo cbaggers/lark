@@ -31,10 +31,14 @@
 		rough-tex-path :rgba8 t t)))
     (make-thing :pos pos
 		:model (yaksha:load-model filepath)
-		:base-sampler (sample base)
-		:normal-sampler (sample norm)
-		:metallic-sampler (sample met)
-		:roughness-sampler (sample rough))))
+		:base-sampler
+                (sample base :minify-filter :linear-mipmap-linear)
+		:normal-sampler
+                (sample norm :minify-filter :linear-mipmap-linear)
+		:metallic-sampler
+                (sample met :minify-filter :linear-mipmap-linear)
+		:roughness-sampler
+                (sample rough :minify-filter :linear-mipmap-linear))))
 
 (defun make-sphere-thing (base-tex-path normal-tex-path met-tex-path
 			  rough-tex-path
@@ -52,10 +56,14 @@
 		rough-tex-path :rgba8 t t)))
     (make-thing :pos pos
 		:model (make-sphere-model)
-		:base-sampler (sample base)
-		:normal-sampler (sample norm)
-		:metallic-sampler (sample met)
-		:roughness-sampler (sample rough))))
+		:base-sampler
+                (sample base :minify-filter :linear-mipmap-linear)
+		:normal-sampler
+                (sample norm :minify-filter :linear-mipmap-linear)
+		:metallic-sampler
+                (sample met :minify-filter :linear-mipmap-linear)
+		:roughness-sampler
+                (sample rough :minify-filter :linear-mipmap-linear))))
 
 
 (defun update-thing (thing)

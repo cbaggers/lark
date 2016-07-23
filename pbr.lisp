@@ -138,11 +138,10 @@
 			 (l·h :float) (n·h :float) (n·l :float)
 			 (linear-roughness :float) (roughness :float)
 			 (metallic :float))
-  (let* ((fd (* albedo (/ (disney-diffuse n·v n·l l·h linear-roughness) +pi+)))
+  (let* ((fd (/ (disney-diffuse n·v n·l l·h linear-roughness) +pi+))
 	 (f0 (mix (v3! 0.04) albedo metallic))
 	 (f90 (saturate (* 50s0 (dot f0 (v3! 0.33)))))
 	 (fr (specular-brdf n·v l·h n·h n·l half-vec f0 f90 roughness))
-
 	 (brdf (+ (* albedo fd) fr)))
     (* brdf n·l
        ;;attenuation
@@ -198,8 +197,10 @@
     (setf gl-frag-depth (x (texture depth tc)))
 
     ;;(pow final (v3! (/ 1 2.2)))
-    (tone-map-uncharted2 final 1s0 1s0)
+    (tone-map-uncharted2 final 2s0 1s0)
     ;;albedo
+    ;;(v3! metallic)
+    ;;normal
     ))
 
 (def-g-> some-shit-pass ()
@@ -229,29 +230,29 @@
 	render-state
       (gl:clear :color-buffer-bit :depth-buffer-bit)
 
-      ;; populate the dfg LUT
-      (clear-fbo (fbo dfg))
-      (map-g-into (fbo dfg)
-      		  #'dfg-texture-pass *quad-stream*)
+      ;; ;; populate the dfg LUT
+      ;; (clear-fbo (fbo dfg))
+      ;; (map-g-into (fbo dfg)
+      ;; 		  #'dfg-texture-pass *quad-stream*)
 
-      ;; precalc the diffuse portion of the IBL
-      (clear-fbo (fbo light-probe-diffuse))
+      ;; ;; precalc the diffuse portion of the IBL
+      ;; (clear-fbo (fbo light-probe-diffuse))
+      ;; ;; (map-g-into (fbo light-probe-diffuse)
+      ;; ;; 		  #'diffuse-sample-hdr-cube *quad-stream*
+      ;; ;; 		  :value-multiplier 1s0 :cube env-map)
       ;; (map-g-into (fbo light-probe-diffuse)
-      ;; 		  #'diffuse-sample-hdr-cube *quad-stream*
-      ;; 		  :value-multiplier 1s0 :cube env-map)
-      (map-g-into (fbo light-probe-diffuse)
-      		  #'diffuse-sample-hdr-2d *quad-stream*
-      		  :value-multiplier 1s0 :tex *catwalk*)
+      ;; 		  #'diffuse-sample-hdr-2d *quad-stream*
+      ;; 		  :value-multiplier 1s0 :tex *catwalk*)
 
-      (generate-mipmaps (cube light-probe-diffuse))
+      ;; (generate-mipmaps (cube light-probe-diffuse))
 
-      ;; precalc the specular portion of the IBL
-      (clear-fbo (fbo light-probe-specular))
-      (map-g-into (fbo light-probe-specular)
-      		  #'specular-sample-hdr-cube *quad-stream*
-      		  :value-multiplier 1s0 :cube env-map :roughness 0.1)
+      ;; ;; precalc the specular portion of the IBL
+      ;; (clear-fbo (fbo light-probe-specular))
+      ;; (map-g-into (fbo light-probe-specular)
+      ;; 		  #'specular-sample-hdr-cube *quad-stream*
+      ;; 		  :value-multiplier 1s0 :cube env-map :roughness 0.1)
 
-      (generate-mipmaps (cube light-probe-specular))
+      ;; (generate-mipmaps (cube light-probe-specular))
 
       ;;
       (clear-fbo (fbo gbuffer))
@@ -265,7 +266,7 @@
 	       :albedo-sampler (base-sampler gbuffer)
 	       :normal-sampler (norm-sampler gbuffer)
 	       :material-sampler (mat-sampler gbuffer)
-	       :light-pos (v! 0 1000 -160)
+	       :light-pos (v! 0 1000 -0)
 	       :diffuse-lp-cube (sampler light-probe-diffuse)
       	       :specular-lp-cube (sampler light-probe-specular)
       	       :dfg (sampler dfg)
