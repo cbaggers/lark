@@ -22,9 +22,13 @@
 (defun-g sky-frag-rect ((tc :vec3) &uniform (tex :sampler-2d))
   (sample-equirectangular-tex tex (normalize tc)))
 
-(def-g-> skybox () #'vert #'frag)
+(def-g-> skybox ()
+  (vert :vec3)
+  (frag :vec3))
 
-(def-g-> skybox-rect () #'vert #'sky-frag-rect)
+(def-g-> skybox-rect ()
+  (vert :vec3)
+  (sky-frag-rect :vec3))
 
 (defun render-sky (camera render-state)
   (declare (ignorable render-state))

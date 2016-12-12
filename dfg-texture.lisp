@@ -37,4 +37,5 @@
     (integrate-dfg-only n·v roughness)))
 
 (def-g-> dfg-texture-pass ()
-  #'pass-through-vert #'dfg-texture)
+  (pass-through-vert g-pt)
+  (dfg-texture :vec2))

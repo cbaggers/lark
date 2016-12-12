@@ -81,7 +81,9 @@
 
 
 (def-g-> diffuse-sample-hdr-cube ()
-  #'pass-through-vert #'ld-diffuse-texture-cube)
+  (pass-through-vert g-pt)
+  (ld-diffuse-texture-cube :vec2))
 
 (def-g-> diffuse-sample-hdr-2d ()
-  #'pass-through-vert #'ld-diffuse-texture-2d)
+  (pass-through-vert g-pt)
+  (ld-diffuse-texture-2d :vec2))

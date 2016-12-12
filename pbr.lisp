@@ -42,7 +42,8 @@
 
 
 (def-g-> pack-gbuffer-pass ()
-  #'pack-gbuffer-vert #'(pack-gbuffer-frag :vec4 :mat3 :vec2 :vec3))
+  (pack-gbuffer-vert yaksha:vertex)
+  (pack-gbuffer-frag :vec4 :mat3 :vec2 :vec3))
 
 ;;----------------------------------------------------------------------
 
@@ -204,7 +205,8 @@
     ))
 
 (def-g-> some-shit-pass ()
-  #'pass-through-vert #'some-shit-frag)
+  (pass-through-vert g-pt)
+  (some-shit-frag :vec2))
 
 ;;----------------------------------------------------------------------
 

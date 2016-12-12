@@ -94,4 +94,5 @@
 
 
 (def-g-> specular-sample-hdr-cube ()
-  #'pass-through-vert #'ld-specular-texture)
+  (pass-through-vert g-pt)
+  (ld-specular-texture :vec2))

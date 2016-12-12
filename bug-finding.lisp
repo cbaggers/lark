@@ -15,4 +15,4 @@
 
 
 (def-g-> bah ()
-  #'tst-v #'tst-f)
+  (tst-v :vec3) (tst-f :vec4))

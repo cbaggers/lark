@@ -22,4 +22,5 @@
 	  (v! metallic roughness 1)))
 
 (def-g-> pack-gbuffer-control-pass ()
-  #'pack-gbuffer-control-vert #'pack-gbuffer-control-frag)
+  (pack-gbuffer-control-vert yaksha:vertex)
+  (pack-gbuffer-control-frag :vec4 :mat3 :vec2))

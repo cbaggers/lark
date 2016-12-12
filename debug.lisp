@@ -6,7 +6,8 @@
   (texture s tc 0))
 
 (def-g-> debug-draw-sampler ()
-  #'pass-through-vert #'debug-draw-sampler-frag)
+  (pass-through-vert g-pt)
+  (debug-draw-sampler-frag :vec2))
 
 (defun draw-sampler (sampler)
   (cls)
@@ -17,7 +18,8 @@
   (v! 0 1 0 1))
 
 (def-g-> green-pass ()
-  #'pass-through-vert #'green-frag)
+  (pass-through-vert g-pt)
+  (green-frag :vec2))
 
 (defun green ()
   (map-g #'green-pass *quad-stream*))
