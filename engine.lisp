@@ -43,7 +43,8 @@
 			  (path "media/scuffed-plastic-1/scuffed-plastic-metal.png" t)
 			  (path "media/scuffed-plastic-1/scuffed-plastic-rough.png" t)
 			  :pos (v! -50 -30 -120)))))
-    (skitter:listen-to λ(window-size-callback _ _1) (skitter:window 0) :size)
+    (skitter:listen-to (lambda (x y z) (window-size-callback x y))
+                       (skitter:window 0) :size)
     (setf *started* t)))
 
 (defun stop-engine ()

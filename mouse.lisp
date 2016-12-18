@@ -2,8 +2,8 @@
 
 (let ((mouse-movement (v! 0 0))
       (last-frame-relative-movement (v! 0 0)))
-  (defun receive-mouse-movement (source timestamp)
-    (declare (ignore timestamp))
+  (defun receive-mouse-movement (source timestamp z)
+    (declare (ignore timestamp z))
     (setf last-frame-relative-movement
 	  (v2:+ last-frame-relative-movement
 		(skitter:xy-pos-relative source))))
