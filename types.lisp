@@ -59,7 +59,8 @@
 
 (defun make-light-probe (&optional (dimensions '(128 128)))
   (let ((cube (make-texture nil :dimensions dimensions :cubes t
-			    :element-type :rgb16f :mipmap t)))
+			    :element-type :rgb16f ;; :mipmap t
+                            )))
     (%make-light-probe
      :cube cube
      :fbo (make-fbo cube :d)

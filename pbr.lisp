@@ -224,6 +224,78 @@
 		  :roughness-tex (roughness-sampler thing)))))))
 
 ;;----------------------------------------------------------------------
+;; learn ibl
+
+(defun-g calc-irr ((normal :vec3) (env-map :sampler-2d))
+  (let* ((up (v! 0 1 0))
+         (right (normalize (cross up normal)))
+         (up (cross normal right))
+         (sampled-color (v! 0 0 0))
+         (index 0s0))
+    (for (φ 0s0) (< φ 6.283) (setq φ (+ φ 0.025))
+         (for (θ 0s0) (< θ 1.57) (setq θ (+ θ 0.1))
+              (let* ((temp (+ (* (cos φ) right)
+                              (* (sin φ) up)))
+                     (sample-vec (+ (* (cos θ) normal)
+                                    (* (sin θ) temp)))
+                     (sample (s~ (sample-equirectangular-tex
+                                  env-map sample-vec)
+                                 :xyz))
+                     (final (* sample (cos θ) (sin θ))))
+                (setf sampled-color (+ sampled-color final))
+                (setf index (+ index 1)))))
+    (v! (* (/ sampled-color index) +pi+) 1)
+    ;; (s~ (sample-equirectangular-tex env-map normal)
+    ;;     :xyz)
+    ))
+
+#+t
+(setf *regen-light-probe* t)
+
+(defun-g learn-ibl-convolve-envmap ((tc :vec2) &uniform (env-map :sampler-2d))
+  (multiple-value-bind (dir0 dir1 dir2 dir3 dir4 dir5)
+      (uv->cube-map-directions tc)
+    (values (calc-irr dir0 env-map)
+	    (calc-irr dir1 env-map)
+	    (calc-irr dir2 env-map)
+	    (calc-irr dir3 env-map)
+	    (calc-irr dir4 env-map)
+	    (calc-irr dir5 env-map)
+            )))
+
+(defun-g learn-ibl-render-frag ((tc :vec2) &uniform
+                                (albedo-sampler :sampler-2d)
+                                (pos-sampler :sampler-2d)
+                                (normal-sampler :sampler-2d)
+                                (material-sampler :sampler-2d)
+                                (irradiance-cube :sampler-cube)
+                                (depth :sampler-2d))
+  (let* ((world-pos (s~ (texture pos-sampler tc) :xyz))
+         (normal (s~ (texture normal-sampler tc) :xyz))
+	 (albedo (s~ (texture albedo-sampler tc) :xyz))
+	 (view-dir (normalize (- world-pos)))
+         (irradiance (s~ (texture irradiance-cube normal) :xyz))
+         (diffuse (* albedo irradiance)))
+
+    ;; set the depth so the skybox works
+    (setf gl-frag-depth (x (texture depth tc)))
+
+    ;; blort
+    (tone-map-uncharted2 diffuse 2s0 1s0)
+    ;;normal
+    ))
+
+(def-g-> learn-ibl-render-pass ()
+  (pass-through-vert g-pt)
+  (learn-ibl-render-frag :vec2))
+
+(def-g-> learn-ibl-convolve-pass ()
+  (pass-through-vert g-pt)
+  (learn-ibl-convolve-envmap :vec2))
+
+;;----------------------------------------------------------------------
+
+(defvar *regen-light-probe* nil)
 
 (defun render (camera game-state)
   (let* ((render-state (render-state game-state)))
@@ -232,11 +304,13 @@
 	render-state
       (gl:clear :color-buffer-bit :depth-buffer-bit)
 
+      ;; Failed IBL
+      ;;
       ;; ;; populate the dfg LUT
       ;; (clear-fbo (fbo dfg))
       ;; (map-g-into (fbo dfg)
       ;; 		  #'dfg-texture-pass *quad-stream*)
-
+      ;;
       ;; ;; precalc the diffuse portion of the IBL
       ;; (clear-fbo (fbo light-probe-diffuse))
       ;; ;; (map-g-into (fbo light-probe-diffuse)
@@ -245,35 +319,55 @@
       ;; (map-g-into (fbo light-probe-diffuse)
       ;; 		  #'diffuse-sample-hdr-2d *quad-stream*
       ;; 		  :value-multiplier 1s0 :tex *catwalk*)
-
+      ;;
       ;; (generate-mipmaps (cube light-probe-diffuse))
-
+      ;;
       ;; ;; precalc the specular portion of the IBL
       ;; (clear-fbo (fbo light-probe-specular))
       ;; (map-g-into (fbo light-probe-specular)
       ;; 		  #'specular-sample-hdr-cube *quad-stream*
       ;; 		  :value-multiplier 1s0 :cube env-map :roughness 0.1)
-
+      ;;
       ;; (generate-mipmaps (cube light-probe-specular))
+
+      (when *regen-light-probe*
+        (setf *regen-light-probe* nil)
+
+        (clear-fbo (fbo light-probe-diffuse))
+
+        (map-g-into (fbo light-probe-diffuse)
+                    #'learn-ibl-convolve-pass *quad-stream*
+                    :env-map *catwalk*))
 
       ;;
       (clear-fbo (fbo gbuffer))
 
+      ;; populate the gbuffer
       (map nil λ(render-thing (update-thing _) camera render-state)
       	   (things *game-state*))
 
+      ;; deferred pass
       (using-camera camera
-	(map-g #'some-shit-pass *quad-stream*
-	       :pos-sampler (pos-sampler gbuffer)
-	       :albedo-sampler (base-sampler gbuffer)
-	       :normal-sampler (norm-sampler gbuffer)
-	       :material-sampler (mat-sampler gbuffer)
-	       :light-pos (v! 0 1000 -0)
-	       :diffuse-lp-cube (sampler light-probe-diffuse)
-      	       :specular-lp-cube (sampler light-probe-specular)
-      	       :dfg (sampler dfg)
-      	       :depth (depth-sampler gbuffer)
-	       :eq-rec *catwalk*))
+        (map-g #'learn-ibl-render-pass *quad-stream*
+               :pos-sampler (pos-sampler gbuffer)
+               :albedo-sampler (base-sampler gbuffer)
+               :normal-sampler (norm-sampler gbuffer)
+               :material-sampler (mat-sampler gbuffer)
+               :irradiance-cube (sampler light-probe-diffuse)
+      	       :depth (depth-sampler gbuffer)))
+
+      ;; (using-camera camera
+      ;;   (map-g #'some-shit-pass *quad-stream*
+      ;;          :pos-sampler (pos-sampler gbuffer)
+      ;;          :albedo-sampler (base-sampler gbuffer)
+      ;;          :normal-sampler (norm-sampler gbuffer)
+      ;;          :material-sampler (mat-sampler gbuffer)
+      ;;          :light-pos (v! 0 1000 -0)
+      ;;          :diffuse-lp-cube (sampler light-probe-diffuse)
+      ;; 	       :specular-lp-cube (sampler light-probe-specular)
+      ;; 	       :dfg (sampler dfg)
+      ;; 	       :depth (depth-sampler gbuffer)
+      ;;          :eq-rec *catwalk*))
 
       (render-sky camera render-state)
       (swap))))
