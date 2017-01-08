@@ -39,8 +39,8 @@
 	     ;; 		 *world-space*
 	     ;; 		 (cepl.camera.base::base-camera-space camera)))
 	     (transform (m4:* (m4:translation (v! 0 0 0))
-			      (m4:rotation-x (* 1
-                                                ;;(get-internal-real-time) 0.0005
+			      (m4:rotation-x (+ (* 2 +pi+)
+                                                ;;(* (get-internal-real-time) 0.0005)
                                                 ))))
 	     (to-clip (cepl.space:get-transform
 		       (cepl.camera.base::base-camera-space camera)

@@ -232,22 +232,23 @@
          (up (cross normal right))
          (sampled-color (v! 0 0 0))
          (index 0s0))
+    ;; loop over hemisphere
     (for (φ 0s0) (< φ 6.283) (setq φ (+ φ 0.025))
          (for (θ 0s0) (< θ 1.57) (setq θ (+ θ 0.1))
               (let* ((temp (+ (* (cos φ) right)
                               (* (sin φ) up)))
-                     (sample-vec (+ (* (cos θ) normal)
-                                    (* (sin θ) temp)))
+                     (sample-vec (+ (* normal (cos θ))
+                                    (* temp (sin θ))))
+                     ;; change sample-vec in the form below to normal to
+                     ;; prove that both uv->cube-map-directions and
+                     ;; sample-equirectangular-tex are working.
                      (sample (s~ (sample-equirectangular-tex
                                   env-map sample-vec)
                                  :xyz))
                      (final (* sample (cos θ) (sin θ))))
                 (setf sampled-color (+ sampled-color final))
                 (setf index (+ index 1)))))
-    (v! (* (/ sampled-color index) +pi+) 1)
-    ;; (s~ (sample-equirectangular-tex env-map normal)
-    ;;     :xyz)
-    ))
+    (v! (/ (* sampled-color +pi+) index) 1)))
 
 #+t
 (setf *regen-light-probe* t)
@@ -260,8 +261,7 @@
 	    (calc-irr dir2 env-map)
 	    (calc-irr dir3 env-map)
 	    (calc-irr dir4 env-map)
-	    (calc-irr dir5 env-map)
-            )))
+	    (calc-irr dir5 env-map))))
 
 (defun-g learn-ibl-render-frag ((tc :vec2) &uniform
                                 (albedo-sampler :sampler-2d)
@@ -275,7 +275,8 @@
 	 (albedo (s~ (texture albedo-sampler tc) :xyz))
 	 (view-dir (normalize (- world-pos)))
          (irradiance (s~ (texture irradiance-cube normal) :xyz))
-         (diffuse (* albedo irradiance)))
+         (ambient (v3! 0.0004))
+         (diffuse (* albedo (+ ambient irradiance))))
 
     ;; set the depth so the skybox works
     (setf gl-frag-depth (x (texture depth tc)))
