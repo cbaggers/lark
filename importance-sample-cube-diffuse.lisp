@@ -1,7 +1,7 @@
 (in-package :lark)
 
 
-(defun-g get-sample ((i :uint) (n :uint))
+(defun-g hammersley-get-sample ((i :uint) (n :uint))
   "http://holger.dammertz.org/stuff/notes_HammersleyOnHemisphere.html"
   (v! (/ (float i) (float n))
       (radical-inverse-vdc i)))
@@ -33,7 +33,7 @@
   (let ((sample-count (uint 32))
 	(bdrf-accum (v4! 0)))
     (for (i (uint 0)) (< i sample-count) (++ i)
-	 (let ((eta (get-sample i sample-count)))
+	 (let ((eta (hammersley-get-sample i sample-count)))
 	   (multiple-value-bind (l n·l pdf)
 	       (importance-sample-cos-dir eta n)
 	     (%if (> n·l 0s0)
@@ -47,7 +47,7 @@
   (let ((sample-count (uint 32))
 	(bdrf-accum (v4! 0)))
     (for (i (uint 0)) (< i sample-count) (++ i)
-	 (let ((eta (get-sample i sample-count)))
+	 (let ((eta (hammersley-get-sample i sample-count)))
 	   (multiple-value-bind (l n·l pdf)
 	       (importance-sample-cos-dir eta n)
 	     (%if (> n·l 0s0)

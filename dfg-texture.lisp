@@ -8,7 +8,7 @@
 	(accum-weight 0s0))
     ;; Compute pre-integration
     (for (i (uint 0)) (< i sample-count) (++ i)
-	 (let* ((u (get-sample (uint i) (uint sample-count)))
+	 (let* ((u (hammersley-get-sample (uint i) (uint sample-count)))
 		(h (importance-sample-ggx u roughness n))
 		(l (- (* 2 (dot v h) h) v))
 		(n·l (saturate (z l)))
