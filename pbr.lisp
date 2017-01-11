@@ -1,5 +1,76 @@
 (in-package :lark)
-(in-readtable fn:fn-reader)g
+(in-readtable fn:fn-reader)
+
+;;----------------------------------------------------------------------
+;; render with ibl
+
+(defconstant +ibl-mipmap-count+ 5)
+
+(defun-g select-ld-mipmap ((roughness :float))
+  (mix (float 0) (- (float +ibl-mipmap-count+) 1) roughness))
+
+(defun-g dfg-lookup ((dfg-lut :sampler-2d) (roughness :float) (n·v :float))
+  (s~ (texture dfg-lut (v! roughness n·v)) :xy))
+
+(defun-g approximate-specular-ibl ((specular-cube :sampler-cube)
+                                   (dfg-lut :sampler-2d)
+                                   (specular-color :vec3)
+                                   (roughness :float)
+                                   (normal :vec3)
+                                   (view-dir :vec3)
+                                   (env-brdf :vec2))
+  (let* ((r (- (* 2 (dot normal view-dir) normal)
+               view-dir))
+         (mipmap (select-ld-mipmap roughness))
+         (prefiltered-color (s~ (texture-lod specular-cube r mipmap)
+                                :xyz)))
+    (* prefiltered-color
+       (+ (* specular-color (x env-brdf))
+          (v3! (y env-brdf))))))
+
+(defun-g ibl-render-frag ((tc :vec2) &uniform
+                          (albedo-sampler :sampler-2d)
+                          (pos-sampler :sampler-2d)
+                          (normal-sampler :sampler-2d)
+                          (material-sampler :sampler-2d)
+                          (specular-cube :sampler-cube)
+                          (irradiance-cube :sampler-cube)
+                          (dfg-lut :sampler-2d)
+                          (depth :sampler-2d))
+  ;;
+  ;; Setup
+  (let* ((world-pos (s~ (texture pos-sampler tc) :xyz))
+         (normal (s~ (texture normal-sampler tc) :xyz))
+	 (albedo (s~ (texture albedo-sampler tc) :xyz))
+	 (view-dir (normalize (- world-pos)))
+         (material (texture material-sampler tc))
+         (metallic (x material))
+	 (roughness (y material)))
+    (setf gl-frag-depth (x (texture depth tc))) ;; set depth so the skybox works
+    ;;
+    ;; The Meat
+    (let* ((n·v (saturate (dot normal view-dir)))
+           (dfg-terms (dfg-lookup dfg-lut roughness n·v)) ;; also named env-brdf
+           (irradiance (s~ (texture irradiance-cube normal)
+                           :xyz))
+           ;; f0: specular reflectence at normal incidence
+           ;; f90: stolen from frostbite paper, probably not correct here but
+           ;;      will do for now
+           (f0 (mix (v3! 0.04) albedo metallic))
+           (f90 (saturate (* 50s0 (dot f0 (v3! 0.33)))))
+           (diffuse (+ (* f0 (x dfg-terms))
+                       (v3! (* f90 (y dfg-terms)))
+                       albedo))
+           (specular (* diffuse (approximate-specular-ibl specular-cube dfg-lut
+                                                          f0 roughness normal
+                                                          view-dir dfg-terms)))
+           (final-v3 (lerp (* diffuse irradiance)
+                           specular
+                           metallic))
+           (final (v! final-v3 1)))
+      ;;
+      ;; tonemap and we are done :)
+      (tone-map-uncharted2 final 2s0 1s0))))
 
 ;;----------------------------------------------------------------------
 ;; learn ibl
@@ -70,7 +141,7 @@
       	       :depth (depth-sampler gbuffer)))
 
       ;; (using-camera camera
-      ;;   (map-g #'some-shit-pass *quad-stream*
+      ;;   (map-g #'light-the-scene-pass *quad-stream*
       ;;          :pos-sampler (pos-sampler gbuffer)
       ;;          :albedo-sampler (base-sampler gbuffer)
       ;;          :normal-sampler (norm-sampler gbuffer)

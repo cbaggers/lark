@@ -32,7 +32,7 @@
        ;;light-color
        )))
 
-(defun-g some-shit-frag ((tc :vec2) &uniform
+(defun-g light-the-scene-frag ((tc :vec2) &uniform
 			 (albedo-sampler :sampler-2d)
 			 (pos-sampler :sampler-2d)
 			 (normal-sampler :sampler-2d)
@@ -81,8 +81,8 @@
     ;;normal
     ))
 
-(def-g-> some-shit-pass ()
+(def-g-> light-the-scene-pass ()
   (pass-through-vert g-pt)
-  (some-shit-frag :vec2))
+  (light-the-scene-frag :vec2))
 
 ;;----------------------------------------------------------------------

@@ -49,6 +49,29 @@
         (/ prefiltered-color total-weight)
         prefiltered-color)))
 
+(defun-g iblggx-prefilter-env-map ((r :vec3) (roughness :float)
+                                   (env-map :sampler-2d))
+  (let* ((n r)
+         (v r)
+         (prefiltered-color (v3! 0))
+         (num-samples (uint 1024))
+         (total-weight 0s0))
+    (for (i 0) (< i num-samples) (setf i (+ 1 i))
+         (let* ((xi (hammersley-get-sample i num-samples))
+                (h (importance-sample-ggx xi roughness n))
+                (l (- (* 2  (dot v h) h) v))
+                (n·l (saturate (dot n l))))
+           (%if (> n·l 0s0)
+                (progn
+                  (setf prefiltered-color
+                       (+ prefiltered-color
+                          (* (s~ (sample-equirectangular-tex env-map l) :xyz)
+                             n·l)))
+                  (setf total-weight (+ total-weight n·l))))))
+    (if (> total-weight 0s0)
+        (/ prefiltered-color total-weight)
+        prefiltered-color)))
+
 (defun-g iblggx-convolve-envmap ((tc :vec2) &uniform (env-map :sampler-2d)
                                  (roughness :float))
   (multiple-value-bind (dir0 dir1 dir2 dir3 dir4 dir5)
