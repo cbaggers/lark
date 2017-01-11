@@ -70,35 +70,9 @@
       ;; tonemap and we are done :)
       (tone-map-uncharted2 final 2s0 1s0))))
 
-;;----------------------------------------------------------------------
-;; learn ibl
-
-(defun-g learn-ibl-render-frag ((tc :vec2) &uniform
-                                (albedo-sampler :sampler-2d)
-                                (pos-sampler :sampler-2d)
-                                (normal-sampler :sampler-2d)
-                                (material-sampler :sampler-2d)
-                                (irradiance-cube :sampler-cube)
-                                (depth :sampler-2d))
-  (let* ((world-pos (s~ (texture pos-sampler tc) :xyz))
-         (normal (s~ (texture normal-sampler tc) :xyz))
-	 (albedo (s~ (texture albedo-sampler tc) :xyz))
-	 (view-dir (normalize (- world-pos)))
-         (irradiance (s~ (texture irradiance-cube normal) :xyz))
-         (ambient (v3! 0.0004))
-         (diffuse (* albedo (+ ambient irradiance))))
-
-    ;; set the depth so the skybox works
-    (setf gl-frag-depth (x (texture depth tc)))
-
-    ;; blort
-    (tone-map-uncharted2 diffuse 2s0 1s0)
-    ;;normal
-    ))
-
-(def-g-> learn-ibl-render-pass ()
+(def-g-> ibl-render-pass ()
   (pass-through-vert g-pt)
-  (learn-ibl-render-frag :vec2))
+  (ibl-render-frag :vec2))
 
 ;;----------------------------------------------------------------------
 
@@ -113,37 +87,54 @@
       (when *regen-light-probe*
         (setf *regen-light-probe* nil)
 
+        ;; regen the dfg-lut (only ever needs to be done once.. but meh)
+        (clear-fbo (fbo dfg))
+        (map-g-into (fbo dfg) #'compute-dfg-lut-pass *quad-stream*)
+
         ;; diffuse irradiance map
         (clear-fbo (diffuse-fbo light-probe))
         (map-g-into (diffuse-fbo light-probe)
                     #'iblggx-convolve-pass *quad-stream*
                     :env-map *catwalk*
-                    :roughness 0.0)
+                    :roughness 0.9)
 
-        ;; specular ggx
+        ;; ;; specular ggx
         (loop :for fbo :in (specular-fbos light-probe) :for i :from 0 :do
            (clear-fbo fbo)
-           (let ((roughness (- 1s0 (* i (/ 1 +ibl-mipmap-count+)))))
+           (let* ((step (/ 1 +ibl-mipmap-count+))
+                  (roughness (* i step 1s0)))
+             (print (list i (cepl.types::%fbo-id fbo) roughness))
              (map-g-into fbo #'iblggx-convolve-pass *quad-stream*
                          :env-map *catwalk*
-                         :roughness roughness))))
+                         :roughness roughness)
+             ))
+        )
 
       ;;
       (clear-fbo (fbo gbuffer))
 
       ;; populate the gbuffer
-      (map nil λ(render-thing (update-thing _) camera render-state)
-      	   (things *game-state*))
+      ;; (map nil λ(render-thing (update-thing _) camera render-state)
+      ;; 	   (things *game-state*))
 
       ;; deferred pass
       (using-camera camera
-        (map-g #'learn-ibl-render-pass *quad-stream*
+        ;; (map-g #'learn-ibl-render-pass *quad-stream*
+        ;;        :pos-sampler (pos-sampler gbuffer)
+        ;;        :albedo-sampler (base-sampler gbuffer)
+        ;;        :normal-sampler (norm-sampler gbuffer)
+        ;;        :material-sampler (mat-sampler gbuffer)
+        ;;        :irradiance-cube (diffuse-sampler light-probe)
+      	;;        :depth (depth-sampler gbuffer))
+        (map-g #'ibl-render-pass *quad-stream*
                :pos-sampler (pos-sampler gbuffer)
                :albedo-sampler (base-sampler gbuffer)
                :normal-sampler (norm-sampler gbuffer)
                :material-sampler (mat-sampler gbuffer)
+               :specular-cube (specular-sampler light-probe)
                :irradiance-cube (diffuse-sampler light-probe)
-      	       :depth (depth-sampler gbuffer)))
+      	       :depth (depth-sampler gbuffer)
+               :dfg-lut (sampler dfg)))
 
       ;; (using-camera camera
       ;;   (map-g #'light-the-scene-pass *quad-stream*

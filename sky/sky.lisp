@@ -17,7 +17,7 @@
 	    vert)))
 
 (defun-g frag ((tc :vec3) &uniform (tex :sampler-cube))
-  (texture tex (normalize tc)))
+  (texture-lod tex (normalize tc) 0))
 
 (defun-g sky-frag-rect ((tc :vec3) &uniform (tex :sampler-2d))
   (sample-equirectangular-tex tex (normalize tc)))
@@ -40,13 +40,16 @@
 	     ;; 		 (cepl.camera.base::base-camera-space camera)))
 	     (transform (m4:* (m4:translation (v! 0 0 0))
 			      (m4:rotation-x (+ (* 2 +pi+)
-                                                ;;(* (get-internal-real-time) 0.0005)
+                                                (* (get-internal-real-time) 0.0005)
                                                 ))))
 	     (to-clip (cepl.space:get-transform
 		       (cepl.camera.base::base-camera-space camera)
 		       *clip-space*)))
-	(map-g #'skybox *skybox-stream*
-	       :tex (diffuse-sampler (light-probe render-state))
+	;; (map-g #'skybox *skybox-stream*
+	;;        :tex (diffuse-sampler (light-probe render-state))
+	;;        :to-cam-space (m4:* to-clip transform))
+        (map-g #'skybox *skybox-stream*
+	       :tex (specular-sampler (light-probe render-state))
 	       :to-cam-space (m4:* to-clip transform))
 	;; (map-g #'skybox-rect *skybox-stream*
 	;;        :tex *catwalk*
