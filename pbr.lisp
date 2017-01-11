@@ -4,8 +4,6 @@
 ;;----------------------------------------------------------------------
 ;; render with ibl
 
-(defconstant +ibl-mipmap-count+ 5)
-
 (defun-g select-ld-mipmap ((roughness :float))
   (mix (float 0) (- (float +ibl-mipmap-count+) 1) roughness))
 
@@ -108,20 +106,27 @@
 
 (defun render (camera game-state)
   (let* ((render-state (render-state game-state)))
-    (with-slots (dfg light-probe-diffuse light-probe-specular env-map
-		     gbuffer)
-	render-state
+    (with-slots (dfg light-probe env-map gbuffer) render-state
+
       (gl:clear :color-buffer-bit :depth-buffer-bit)
 
       (when *regen-light-probe*
         (setf *regen-light-probe* nil)
 
-        (clear-fbo (fbo light-probe-diffuse))
-
-        (map-g-into (fbo light-probe-diffuse)
+        ;; diffuse irradiance map
+        (clear-fbo (diffuse-fbo light-probe))
+        (map-g-into (diffuse-fbo light-probe)
                     #'iblggx-convolve-pass *quad-stream*
                     :env-map *catwalk*
-                    :roughness 0.0))
+                    :roughness 0.0)
+
+        ;; specular ggx
+        (loop :for fbo :in (specular-fbos light-probe) :for i :from 0 :do
+           (clear-fbo fbo)
+           (let ((roughness (- 1s0 (* i (/ 1 +ibl-mipmap-count+)))))
+             (map-g-into fbo #'iblggx-convolve-pass *quad-stream*
+                         :env-map *catwalk*
+                         :roughness roughness))))
 
       ;;
       (clear-fbo (fbo gbuffer))
@@ -137,7 +142,7 @@
                :albedo-sampler (base-sampler gbuffer)
                :normal-sampler (norm-sampler gbuffer)
                :material-sampler (mat-sampler gbuffer)
-               :irradiance-cube (sampler light-probe-diffuse)
+               :irradiance-cube (diffuse-sampler light-probe)
       	       :depth (depth-sampler gbuffer)))
 
       ;; (using-camera camera
@@ -147,8 +152,8 @@
       ;;          :normal-sampler (norm-sampler gbuffer)
       ;;          :material-sampler (mat-sampler gbuffer)
       ;;          :light-pos (v! 0 1000 -0)
-      ;;          :diffuse-lp-cube (sampler light-probe-diffuse)
-      ;; 	       :specular-lp-cube (sampler light-probe-specular)
+      ;;          :diffuse-lp-cube (diffuce-sampler light-probe)
+      ;; 	       :specular-lp-cube (specular-sampler light-probe)
       ;; 	       :dfg (sampler dfg)
       ;; 	       :depth (depth-sampler gbuffer)
       ;;          :eq-rec *catwalk*))

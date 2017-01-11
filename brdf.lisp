@@ -45,3 +45,15 @@
 				     n·l)
 				  α²)))))
     (/ 0.5 (+ ggx-v-λ ggx-l-λ))))
+
+
+;; http://graphicrants.blogspot.com.au/2013/08/specular-brdf-reference.html
+(defun-g ggx ((a :float) (n·v :float))
+  (let ((k (* a 0.5)))
+    (/ n·v (+ (* n·v (- 1 k)) k))))
+
+;; http://graphicrants.blogspot.com.au/2013/08/specular-brdf-reference.html
+(defun-g g-smith ((roughness :float) (n·v :float) (n·l :float))
+  (let ((α (* roughness roughness)))
+    (* (ggx α n·v)
+       (ggx α n·l))))

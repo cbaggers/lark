@@ -51,20 +51,32 @@
 
 ;;----------------------------------------------------------------------
 
-(deftclass (light-probe (:constructor %make-light-probe) (:conc-name nil))
-  cube
-  fbo
-  sampler)
+(defconstant +ibl-mipmap-count+ 5)
 
+(deftclass (light-probe (:constructor %make-light-probe) (:conc-name nil))
+  diffuse-cube
+  diffuse-fbo
+  diffuse-sampler
+  specular-cube
+  specular-fbos
+  specular-sampler)
 
 (defun make-light-probe (&optional (dimensions '(128 128)))
-  (let ((cube (make-texture nil :dimensions dimensions :cubes t
-			    :element-type :rgb16f ;; :mipmap t
-                            )))
+  (assert (and (>= (first dimensions) 128)
+               (>= (second dimensions) 128)))
+  (let ((diff-cube (make-texture nil :dimensions dimensions :cubes t
+                                 :element-type :rgb16f))
+        (spec-cube (make-texture nil :dimensions dimensions :cubes t
+                                 :element-type :rgb16f
+                                 :mipmap +ibl-mipmap-count+)))
     (%make-light-probe
-     :cube cube
-     :fbo (make-fbo cube :d)
-     :sampler (sample cube))))
+     :diffuse-cube diff-cube
+     :diffuse-fbo (make-fbo diff-cube :d)
+     :diffuse-sampler (sample diff-cube)
+
+     :specular-cube spec-cube
+     :specular-fbos (make-fbos-for-each-mipmap-of-cube-texture spec-cube)
+     :specular-sampler (sample spec-cube))))
 
 ;;----------------------------------------------------------------------
 
@@ -86,8 +98,7 @@
 
 (deftclass (render-state (:conc-name nil))
   (dfg (make-dfg-lookup))
-  (light-probe-diffuse (make-light-probe))
-  (light-probe-specular (make-light-probe))
+  (light-probe (make-light-probe))
   (gbuffer (make-gbuffer))
   (env-map (sample (load-hdr-cross-texture
                     (path "media/galileo_cross.hdr" t)))))

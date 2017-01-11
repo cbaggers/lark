@@ -28,8 +28,8 @@
 
 (defun-g iblggx-prefilter-env-map ((r :vec3) (roughness :float)
                                    (env-map :sampler-2d))
-  (let* ((normal r)
-         (view-dir r)
+  (let* ((normal r)   ;; ← this is why we lose the
+         (view-dir r) ;; ← stretched reflections right?
          (prefiltered-color (v3! 0))
          (num-samples (uint 1024))
          (total-weight 0s0))
@@ -65,3 +65,35 @@
 (def-g-> iblggx-convolve-pass ()
   (pass-through-vert g-pt)
   (iblggx-convolve-envmap :vec2))
+
+
+(defun-g integrate-brdf ((roughness :float) (n·v :float))
+  (let ((view-dir (v! (- 1s0 (* n·v n·v)) ;;sin
+                      0
+                      n·v));; cos
+        (normal (v! 0 0 1))
+        (num-samples 1024)
+        (a 0s0)
+        (b 0s0))
+    (for (i 0) (< i num-samples) (setf i (+ i 1))
+         (let* ((ham-sample (hammersley-get-sample i num-samples))
+                (h (importance-sample-ggx ham-sample roughness normal))
+                (l (- (* 2 (dot view-dir h) h)
+                      view-dir))
+                (n·l (saturate (z l)))
+                (n·h (saturate (z h)))
+                (v·h (saturate (dot view-dir h))))
+           (%if (> n·l 0s0)
+                (let* ((g (g-smith roughness n·v n·l))
+                       (g-vis (/ (* g v·h) (* n·h n·v)))
+                       (fc (expt (- 1 v·h) 5)))
+                  (setf a (+ a (* (- 1 fc) g-vis)))
+                  (setf b (+ b (* fc g-vis)))))))
+    (/ (v! a b) num-samples)))
+
+(defun-g iblggx-convolve-envmap ((tc :vec2))
+  (integrate-brdf (x tc) (y tc)))
+
+(def-g-> compute-dfg-lut-pass ()
+  (pass-through-vert g-pt)
+  (compute-df-lut-frag :vec2))
