@@ -91,7 +91,7 @@
                   (setf b (+ b (* fc g-vis)))))))
     (/ (v! a b) num-samples)))
 
-(defun-g iblggx-convolve-envmap ((tc :vec2))
+(defun-g compute-df-lut-frag ((tc :vec2))
   (integrate-brdf (x tc) (y tc)))
 
 (def-g-> compute-dfg-lut-pass ()

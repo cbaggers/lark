@@ -48,7 +48,7 @@
 
 
 (defun render-thing (thing camera render-state)
-  (with-slots (light-probe-diffuse light-probe-specular gbuffer dfg)
+  (with-slots (gbuffer dfg)
       render-state
     (using-camera camera
       (loop :for mesh :in (yaksha:model-meshes (model thing)) :do
