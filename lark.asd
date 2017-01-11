@@ -37,9 +37,9 @@
 	       (:file "types")
 	       (:file "pass-through")
 	       (:file "brdf")
-	       (:file "importance-sample-cube-diffuse")
-	       (:file "importance-sample-cube-specular")
-	       (:file "dfg-texture")
+               (:file "packing-pass")
+	       (:file "ibl")
+               (:file "punctual-lights")
 	       (:file "pbr")
 
 
