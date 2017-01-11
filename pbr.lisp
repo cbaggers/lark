@@ -58,16 +58,16 @@
            ;;      will do for now
            (f0 (mix (v3! 0.04) albedo metallic))
            (f90 (saturate (* 50s0 (dot f0 (v3! 0.33)))))
-           (diffuse (+ (* f0 (x dfg-terms))
-                       (v3! (* f90 (y dfg-terms)))
-                       albedo))
+           (diffuse (s~ (+ (* f0 (x dfg-terms))
+                           (v3! (* f90 (y dfg-terms)))
+                           albedo)
+                        :xyz))
            (specular (* diffuse (approximate-specular-ibl specular-cube dfg-lut
                                                           f0 roughness normal
                                                           view-dir dfg-terms)))
-           (final-v3 (lerp (* diffuse irradiance)
-                           specular
-                           metallic))
-           (final (v! final-v3 1)))
+           (final (mix (* diffuse irradiance)
+                       specular
+                       metallic)))
       ;;
       ;; tonemap and we are done :)
       (tone-map-uncharted2 final 2s0 1s0))))

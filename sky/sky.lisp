@@ -45,12 +45,12 @@
 	     (to-clip (cepl.space:get-transform
 		       (cepl.camera.base::base-camera-space camera)
 		       *clip-space*)))
-	;; (map-g #'skybox *skybox-stream*
-	;;        :tex (sampler (light-probe-diffuse render-state))
-	;;        :to-cam-space (m4:* to-clip transform))
-	(map-g #'skybox-rect *skybox-stream*
-	       :tex *catwalk*
+	(map-g #'skybox *skybox-stream*
+	       :tex (sampler (light-probe-diffuse render-state))
 	       :to-cam-space (m4:* to-clip transform))
+	;; (map-g #'skybox-rect *skybox-stream*
+	;;        :tex *catwalk*
+	;;        :to-cam-space (m4:* to-clip transform))
 	))
     (gl:depth-func :less)))
 
