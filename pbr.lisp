@@ -54,8 +54,10 @@
            ;; f0: specular reflectence at normal incidence
            ;; f90: stolen from frostbite paper, probably not correct here but
            ;;      will do for now
-           (f0 (mix (v3! 0.04) albedo metallic))
-           (f90 (saturate (* 50s0 (dot f0 (v3! 0.33)))))
+           (f0 (v3! 0.04) ;;(mix (v3! 0.04) albedo metallic)
+             )
+           (f90 0.04 ;;(saturate (* 50s0 (dot f0 (v3! 0.33))))
+             )
            (diffuse (s~ (+ (* f0 (x dfg-terms))
                            (v3! (* f90 (y dfg-terms)))
                            albedo)
@@ -68,7 +70,9 @@
                        metallic)))
       ;;
       ;; tonemap and we are done :)
-      (tone-map-uncharted2 final 2s0 1s0))))
+      (tone-map-uncharted2 final 1s0 0.4s0)
+      ;;final
+      )))
 
 (def-g-> ibl-render-pass ()
   (pass-through-vert g-pt)
@@ -94,15 +98,15 @@
         ;; diffuse irradiance map
         (clear-fbo (diffuse-fbo light-probe))
         (map-g-into (diffuse-fbo light-probe)
-                    #'iblggx-convolve-pass *quad-stream*
+                    #'ibl-diffuse-pass *quad-stream*
                     :env-map *catwalk*
-                    :roughness 0.9)
+                    :roughness 1s0)
 
         ;; ;; specular ggx
         (loop :for fbo :in (specular-fbos light-probe) :for i :from 0 :do
            (clear-fbo fbo)
            (let* ((step (/ 1 +ibl-mipmap-count+))
-                  (roughness (* i step 1s0)))
+                  (roughness (+ step (* i step 1s0))))
              (print (list i (cepl.types::%fbo-id fbo) roughness))
              (map-g-into fbo #'iblggx-convolve-pass *quad-stream*
                          :env-map *catwalk*
@@ -114,8 +118,8 @@
       (clear-fbo (fbo gbuffer))
 
       ;; populate the gbuffer
-      ;; (map nil λ(render-thing (update-thing _) camera render-state)
-      ;; 	   (things *game-state*))
+      (map nil λ(render-thing (update-thing _) camera render-state)
+      	   (things *game-state*))
 
       ;; deferred pass
       (using-camera camera
@@ -132,7 +136,7 @@
                :normal-sampler (norm-sampler gbuffer)
                :material-sampler (mat-sampler gbuffer)
                :specular-cube (specular-sampler light-probe)
-               :irradiance-cube (diffuse-sampler light-probe)
+               :irradiance-cube (specular-sampler light-probe) ;;(diffuse-sampler light-probe)
       	       :depth (depth-sampler gbuffer)
                :dfg-lut (sampler dfg)))
 
