@@ -16,7 +16,7 @@
                                (light-pos :vec3))
   ;;
   ;; Setup
-  (let* (;; ibl or both
+  (let* (;; both
          (world-pos (s~ (texture pos-sampler tc) :xyz))
          (normal (s~ (texture normal-sampler tc) :xyz))
 	 (albedo (s~ (texture albedo-sampler tc) :xyz))
@@ -27,31 +27,28 @@
          ;; punctual light
          (light-dir (normalize (- light-pos world-pos))))
     ;;
-    (setf gl-frag-depth (x (texture depth tc))) ;; set depth so the skybox works
+    (setf gl-frag-depth (x (texture depth tc)))
     ;;
-    (let* (;; both
+    (let* (;;
            (n·v (saturate (dot normal view-dir)))
-           ;; ibl
-           (ibl (calc-ibl dfg-lut specular-cube irradiance-cube n·v normal
-                          view-dir albedo metallic roughness))
            ;; punctual
            (half-vec (normalize (+ view-dir light-dir)))
            (l·h (saturate (dot light-dir half-vec)))
            (n·h (saturate (dot normal half-vec)))
            (n·l (saturate (dot normal light-dir)))
-
-           ;; perceptualy linear roughness (α)
-           (linear-roughness (* roughness roughness))
-           (reflect-vec (normalize (- (* 2 normal (dot normal view-dir))
-                                      view-dir)))
+           (linear-roughness (* roughness roughness)) ;; perceptualy linear roughness (α)
            (plight (punctual-light albedo n·v half-vec
                                    l·h n·h n·l
                                    linear-roughness
                                    roughness
                                    metallic))
+           ;; ibl
+           (ibl (calc-ibl dfg-lut specular-cube irradiance-cube n·v normal
+                          view-dir albedo metallic roughness))
+           ;; combine
            (final (+ plight ibl)))
       ;;
-      (tone-map-uncharted2 final 2s0 0.4))))
+      (tone-map-uncharted2 ibl 2s0 0.4))))
 
 (def-g-> light-the-scene-pass ()
   (pass-through-vert g-pt)
@@ -105,8 +102,9 @@
                :albedo-sampler (base-sampler gbuffer)
                :normal-sampler (norm-sampler gbuffer)
                :material-sampler (mat-sampler gbuffer)
-                              :specular-cube (specular-sampler light-probe)
-               :irradiance-cube (specular-sampler light-probe) ;;(diffuse-sampler light-probe)
+               :specular-cube (specular-sampler light-probe)
+               ;;:irradiance-cube (specular-sampler light-probe)
+               :irradiance-cube (diffuse-sampler light-probe)
                :dfg-lut (sampler dfg)
       	       :depth (depth-sampler gbuffer)
                :light-pos (v! 0 1000 -0)))
