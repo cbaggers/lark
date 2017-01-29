@@ -40,7 +40,7 @@
                 (l (- (* 2  (dot view-dir h) h)
                       view-dir))
                 (n·l (saturate (dot normal l))))
-           (%if (> n·l 0s0)
+           (if (> n·l 0s0)
                 (progn
                   (setf prefiltered-color
                        (+ prefiltered-color
@@ -135,7 +135,7 @@
                 (n·l (saturate (z l)))
                 (n·h (saturate (z h)))
                 (v·h (saturate (dot view-dir h))))
-           (%if (> n·l 0s0)
+           (if (> n·l 0s0)
                 (let* ((g (g-smith roughness n·v n·l))
                        (g-vis (/ (* g v·h) (* n·h n·v)))
                        (fc (expt (- 1 v·h) 5)))

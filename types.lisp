@@ -1,5 +1,8 @@
 (in-package :lark)
 
+(defvar *started* nil)
+(defvar *game-state* nil)
+(defvar *catwalk* nil)
 (defvar *render-state* nil)
 
 ;;----------------------------------------------------------------------

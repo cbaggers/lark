@@ -1,10 +1,6 @@
 (in-package :lark)
 (in-readtable fn:fn-reader)
 
-(defvar *started* nil)
-(defvar *game-state* nil)
-(defvar *catwalk* nil)
-
 (defun start-engine ()
   (unless *started*
     (unless cepl.context:*gl-context*
@@ -43,7 +39,9 @@
 			  (path "media/scuffed-plastic-1/scuffed-plastic-metal.png" t)
 			  (path "media/scuffed-plastic-1/scuffed-plastic-rough.png" t)
 			  :pos (v! -50 -30 -120)))))
-    (skitter:listen-to (lambda (x y z) (window-size-callback x y))
+    (skitter:listen-to (lambda (x y z)
+                         (declare (ignore z))
+                         (window-size-callback x y))
                        (skitter:window 0) :size)
     (setf *started* t)))
 

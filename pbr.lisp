@@ -54,9 +54,9 @@
            ;; f0: specular reflectence at normal incidence
            ;; f90: stolen from frostbite paper, probably not correct here but
            ;;      will do for now
-           (f0 (v3! 0.04) ;;(mix (v3! 0.04) albedo metallic)
+           (f0 (mix (v3! 0.04) albedo metallic) ;;(v3! 0.04)
              )
-           (f90 0.04 ;;(saturate (* 50s0 (dot f0 (v3! 0.33))))
+           (f90 (saturate (* 50s0 (dot f0 (v3! 0.33)))) ;;0.04
              )
            (diffuse (s~ (+ (* f0 (x dfg-terms))
                            (v3! (* f90 (y dfg-terms)))
