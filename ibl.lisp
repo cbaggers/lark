@@ -149,3 +149,59 @@
 (def-g-> compute-dfg-lut-pass ()
   (pass-through-vert g-pt)
   (compute-df-lut-frag :vec2))
+
+;;----------------------------------------------------------------------
+
+(defun-g select-ld-mipmap ((roughness :float))
+  (mix (float 0) (- (float +ibl-mipmap-count+) 1) roughness))
+
+(defun-g dfg-lookup ((dfg-lut :sampler-2d) (roughness :float) (n·v :float))
+  (s~ (texture dfg-lut (v! roughness n·v)) :xy))
+
+(defun-g approximate-specular-ibl ((specular-cube :sampler-cube)
+                                   (dfg-lut :sampler-2d)
+                                   (specular-color :vec3)
+                                   (roughness :float)
+                                   (normal :vec3)
+                                   (view-dir :vec3)
+                                   (env-brdf :vec2))
+  (let* ((r (- (* 2 (dot normal view-dir) normal)
+               view-dir))
+         (mipmap (select-ld-mipmap roughness))
+         (prefiltered-color (s~ (texture-lod specular-cube r mipmap)
+                                :xyz)))
+    (* prefiltered-color
+       (+ (* specular-color (x env-brdf))
+          (v3! (y env-brdf))))))
+
+(defun-g calc-ibl ((dfg-lut :sampler-2d)
+                   (specular-cube :sampler-cube)
+                   (irradiance-cube :sampler-cube)
+                   (n·v :float)
+                   (normal :vec3)
+                   (view-dir :vec3)
+                   (albedo :vec3)
+                   (metallic :float)
+                   (roughness :float))
+  (let* ((dfg-terms (dfg-lookup dfg-lut roughness n·v)) ;; also named env-brdf
+         (irradiance (s~ (texture irradiance-cube normal)
+                         :xyz))
+         ;; f0: specular reflectence at normal incidence
+         ;; f90: stolen from frostbite paper, probably not correct here but
+         ;;      will do for now
+         (f0 (mix (v3! 0.04) albedo metallic) ;;(v3! 0.04)
+           )
+         (f90 (saturate (* 50s0 (dot f0 (v3! 0.33)))) ;;0.04
+           )
+         (diffuse (s~ (+ (* f0 (x dfg-terms))
+                         (v3! (* f90 (y dfg-terms)))
+                         albedo)
+                      :xyz))
+         (specular (* diffuse (approximate-specular-ibl specular-cube dfg-lut
+                                                        f0 roughness normal
+                                                        view-dir dfg-terms))))
+    (mix (* diffuse irradiance)
+         specular
+         metallic)))
+
+;;----------------------------------------------------------------------

@@ -35,10 +35,7 @@
   (when *sky-enabled*
     (gl:depth-func :lequal)
     (using-camera camera
-      (let* (;; (transform (cepl.space:get-transform
-	     ;; 		 *world-space*
-	     ;; 		 (cepl.camera.base::base-camera-space camera)))
-	     (transform (m4:* (m4:translation (v! 0 0 0))
+      (let* ((transform (m4:* (m4:translation (v! 0 0 0))
 			      (m4:rotation-x (+ (* 2 +pi+)
                                                 ;;(* (get-internal-real-time) 0.0005)
                                                 ))))
