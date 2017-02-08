@@ -4,8 +4,8 @@
 
 (defun-g tst-v ((vert :vec3) &uniform (model-space vec-space))
   (labels ((foo ((x :vec4))
-	     (in *world-space*
-	       x)))
+             (in *world-space*
+               x)))
     (in model-space
       (foo (sv! (v! 0 0 0 0))))))
 

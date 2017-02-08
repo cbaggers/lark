@@ -7,10 +7,10 @@
 
 (defun reshape (new-resolution)
   (let ((new-dimensions (list (down-to-nearest (v:x new-resolution) 8)
-			      (down-to-nearest (v:y new-resolution) 8))))
+                              (down-to-nearest (v:y new-resolution) 8))))
     (setf (viewport-dimensions (camera-viewport *camera*)) new-dimensions)
     (setf (gbuffer (render-state *game-state*))
-	  (make-gbuffer new-dimensions))))
+          (make-gbuffer new-dimensions))))
 
 
 (defun window-size-callback (event timestamp)

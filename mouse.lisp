@@ -5,13 +5,13 @@
   (defun receive-mouse-movement (source timestamp z)
     (declare (ignore timestamp z))
     (setf last-frame-relative-movement
-	  (v2:+ last-frame-relative-movement
-		(skitter:xy-pos-relative source))))
+          (v2:+ last-frame-relative-movement
+                (skitter:xy-pos-relative source))))
   (defun mouse-movement ()
     mouse-movement)
   (defun swap-mouse-move ()
     (setf mouse-movement last-frame-relative-movement
-	  last-frame-relative-movement (v! 0 0))))
+          last-frame-relative-movement (v! 0 0))))
 
 (defun mouse-pos ()
   (skitter:xy-pos-vec (skitter:mouse-pos (skitter:mouse 0))))
@@ -25,8 +25,8 @@
 (defparameter *mouse-move-listener*
   (progn
     (when (and (boundp '*mouse-move-listener*)
-	       (symbol-value '*mouse-move-listener*))
+               (symbol-value '*mouse-move-listener*))
       (skitter:stop-listening *mouse-move-listener*))
     (skitter:listen-to (skitter:make-event-listener #'receive-mouse-movement)
-		       (skitter:mouse 0)
-		       :pos)))
+                       (skitter:mouse 0)
+                       :pos)))

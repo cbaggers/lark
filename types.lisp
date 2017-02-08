@@ -31,11 +31,11 @@
   ;; positions normals albedo specular
   (assert (listp dimensions))
   (let* ((dim (or dimensions (viewport-dimensions (current-viewport))))
-	 (fbo (make-fbo `(0 :dimensions ,dim :element-type :rgb32f)
-	   		`(1 :dimensions ,dim :element-type :rgb16f)
-	   		`(2 :dimensions ,dim :element-type :rgb8)
-	   		`(3 :dimensions ,dim :element-type :rgb8)
-	   		`(:d :dimensions ,dim))))
+         (fbo (make-fbo `(0 :dimensions ,dim :element-type :rgb32f)
+                        `(1 :dimensions ,dim :element-type :rgb16f)
+                        `(2 :dimensions ,dim :element-type :rgb8)
+                        `(3 :dimensions ,dim :element-type :rgb8)
+                        `(:d :dimensions ,dim))))
     (%make-gbuffer
      :fbo fbo
      :pos-sampler (sample (attachment-tex fbo 0))
@@ -90,7 +90,7 @@
 
 (defun make-dfg-lookup (&optional (dimensions '(128 128)))
   (let ((dfg-tex (make-texture nil :dimensions dimensions
-			       :element-type :rgb16f)))
+                               :element-type :rgb16f)))
     ;; apparently this could be r16g16f (rg16f?) ↑↑
     (%make-dfg-lookup
      :fbo (make-fbo `(0 ,dfg-tex) `(:d :dimensions ,dimensions))

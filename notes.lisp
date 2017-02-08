@@ -5,9 +5,9 @@
   ;; ρ - diffuse reflectance
   ;; θd -
   (let* ((ρ/π (/ ρ +pi+))
-	 (fd90 (+ 0.5 (* (expt (cos θd) 2) α)))
-	 (sat-n·l (saturate n·l))
-	 (sat-n·v (saturate n·v)))
+         (fd90 (+ 0.5 (* (expt (cos θd) 2) α)))
+         (sat-n·l (saturate n·l))
+         (sat-n·v (saturate n·v)))
     (* ρ/π
        (+ 1 (* fd90 (expt (- 1 sat-n·l) 5)))
        (+ 1 (* fd90 (expt (- 1 sat-n·v) 5))))))

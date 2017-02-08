@@ -17,12 +17,12 @@
 (defun step-thing (thing)
   (let ((time (/ (now) 10200)))
     (if auto-rot
-	(setf (rot thing) (q:from-mat3
-			   (m3:rotation-from-euler
-			    (v! (* 2 (cos time))
-				(sin time)
-				(sin time)))))
-	(let ((v (v2:/s (mouse-pos) 100s0)))
-	  (setf (rot thing) (q:from-mat3
-			     (m3:rotation-from-euler
-			      (v! (y v) 0s0 (x v)))))))))
+        (setf (rot thing) (q:from-mat3
+                           (m3:rotation-from-euler
+                            (v! (* 2 (cos time))
+                                (sin time)
+                                (sin time)))))
+        (let ((v (v2:/s (mouse-pos) 100s0)))
+          (setf (rot thing) (q:from-mat3
+                             (m3:rotation-from-euler
+                              (v! (y v) 0s0 (x v)))))))))

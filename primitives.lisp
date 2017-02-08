@@ -4,23 +4,23 @@
   (defun make-cube (&key (size 10.0))
     (unless cached-gpu-data
       (setf cached-gpu-data
-	    (%prim->gpu-data
-	     (dendrite.primitives:box-data
-	      :width size :height size :depth size))))
+            (%prim->gpu-data
+             (dendrite.primitives:box-data
+              :width size :height size :depth size))))
     (make-thing :model (yaksha:make-model-from-mesh
-			(yaksha:make-mesh :stream cached-gpu-data
-					  :textures nil)))))
+                        (yaksha:make-mesh :stream cached-gpu-data
+                                          :textures nil)))))
 
 (let (cached-gpu-data)
   (defun make-box (&key (width 80.0) (height 1.0) (depth 80.0))
     (unless cached-gpu-data
       (setf cached-gpu-data
-	    (%prim->gpu-data
-	     (dendrite.primitives:box-data
-	      :width width :height height :depth depth))))
+            (%prim->gpu-data
+             (dendrite.primitives:box-data
+              :width width :height height :depth depth))))
     (make-thing :model (yaksha:make-model-from-mesh
-			(yaksha:make-mesh :stream cached-gpu-data
-					  :textures nil)))))
+                        (yaksha:make-mesh :stream cached-gpu-data
+                                          :textures nil)))))
 
 (defun sphere-data (&key (radius 0.5) (lines-of-latitude 30)
                       (lines-of-longitude 30) (normals t) (tex-coords t))
@@ -54,7 +54,7 @@
                         pos
                         `(,pos
                           ,@(when normals `(,(v3:normalize pos)))
-			  ,(v! 0 0 0)
+                          ,(v! 0 0 0)
                           ,@(when tex-coords
                                   `(,(v! (/ lon lines-of-longitude)
                                          (/ lat lines-of-latitude))))))))))
@@ -65,16 +65,16 @@
     (declare (ignore physics))
     (unless cached-gpu-data
       (setf cached-gpu-data
-	    (%prim->gpu-data
-	     (sphere-data :radius radius))))
+            (%prim->gpu-data
+             (sphere-data :radius radius))))
     (yaksha:make-model-from-mesh
      (yaksha:make-mesh :stream cached-gpu-data
-		       :textures nil))))
+                       :textures nil))))
 
 (defun %prim->gpu-data (data-from-dendrite)
   (cepl:make-buffer-stream
    (cepl:make-gpu-array (first data-from-dendrite)
-			 :element-type 'yaksha:vertex)
+                        :element-type 'yaksha:vertex)
    :index-array (cepl:make-gpu-array (second data-from-dendrite)
-				      :element-type :ushort)
+                                     :element-type :ushort)
    :retain-arrays t))

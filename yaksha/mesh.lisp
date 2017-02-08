@@ -33,42 +33,42 @@
 
 (defmethod print-object ((object mesh) stream)
   (format stream "#<lark-mesh :verts ~s>"
-	  (buffer-stream-length (mesh-stream object))))
+          (buffer-stream-length (mesh-stream object))))
 
 (defmethod print-object ((object y-texture) stream)
   (format stream "#<lark-texture :dimensions ~s>"
-	  (cepl:dimensions
-	   (cepl:texref
-	    (y-texture-cepl-texture object)))))
+          (cepl:dimensions
+           (cepl:texref
+            (y-texture-cepl-texture object)))))
 
 ;;----------------------------------------------------------------------
 
 (defun load-assimp-meshes (filename)
   (let* ((scene (file->scene filename))
-	 (meshes (assimp-scene->meshes scene filename)))
+         (meshes (assimp-scene->meshes scene filename)))
     meshes))
 
 (defun file->scene (filename)
   (assimp:import-into-lisp
    filename :processing-flags '(:ai-process-triangulate
-				:ai-process-flip-u-vs
-				:ai-process-calc-tangent-space)))
+                                :ai-process-flip-u-vs
+                                :ai-process-calc-tangent-space)))
 
 (defun assimp-scene->meshes (a-scene model-filename)
   (let ((materials (assimp:materials a-scene))
-	(texture-cache (make-hash-table :test #'equal)))
+        (texture-cache (make-hash-table :test #'equal)))
     (map 'list λ(assimp-mesh->mesh _ materials model-filename texture-cache)
-	 (assimp:meshes a-scene))))
+         (assimp:meshes a-scene))))
 
 (defun assimp-mesh->mesh (a-mesh materials model-filename texture-cache)
   (let* ((vertex-gpu-array (a-mesh->vertex-gpu-array a-mesh))
-	 (index-gpu-array (a-mesh->indicies-gpu-array a-mesh))
-	 (textures (a-mesh->textures a-mesh materials model-filename
-				     texture-cache)))
+         (index-gpu-array (a-mesh->indicies-gpu-array a-mesh))
+         (textures (a-mesh->textures a-mesh materials model-filename
+                                     texture-cache)))
     (make-mesh
      :stream (cepl:make-buffer-stream vertex-gpu-array
-				       :index-array index-gpu-array
-				       :retain-arrays t)
+                                      :index-array index-gpu-array
+                                      :retain-arrays t)
      :textures textures
      :samplers (mapcar #'sample (mapcar #'y-texture-cepl-texture textures)))))
 
@@ -84,52 +84,52 @@
 
 (defun a-material->textures (material texture-cache model-filename)
   (let* ((tex-files (gethash "$tex.file" material))
-	 (tex-type-filter '(:ai-texture-type-specular
-			    :ai-texture-type-diffuse)))
+         (tex-type-filter '(:ai-texture-type-specular
+                            :ai-texture-type-diffuse)))
     (remove nil (mapcar λ(when (member (first _) tex-type-filter)
-			   (tex-file->texture _ texture-cache model-filename))
-			tex-files))))
+                           (tex-file->texture _ texture-cache model-filename))
+                        tex-files))))
 
 (defun tex-file->texture (tex-file texture-cache model-filename)
   (dbind (a-tex-type ? tex-filename) tex-file
     (declare (ignore ?))
     (let ((filepath (cl-fad:merge-pathnames-as-file model-filename
-						    tex-filename)))
+                                                    tex-filename)))
       (or (gethash tex-filename texture-cache)
-	  (let ((tex (make-y-texture
-		      :cepl-texture (cepl.sdl2-image:load-image-to-texture
-				     filepath)
-		      :type (a-tex-type-name->lark-tex-type-name
-			     a-tex-type))))
-	    (setf (gethash tex-filename texture-cache) tex)
-	    tex)))))
+          (let ((tex (make-y-texture
+                      :cepl-texture (cepl.sdl2-image:load-image-to-texture
+                                     filepath)
+                      :type (a-tex-type-name->lark-tex-type-name
+                             a-tex-type))))
+            (setf (gethash tex-filename texture-cache) tex)
+            tex)))))
 
 (defun a-tex-type-name->lark-tex-type-name (name)
   (let ((mapping '((:ai-texture-type-none . :none)
-		   (:ai-texture-type-diffuse . :diffuse)
-		   (:ai-texture-type-specular . :specular)
-		   (:ai-texture-type-ambient . :ambient)
-		   (:ai-texture-type-emissive . :emissive)
-		   (:ai-texture-type-height . :height)
-		   (:ai-texture-type-normals . :normals)
-		   (:ai-texture-type-shininess . :shininess)
-		   (:ai-texture-type-opacity . :opacity)
-		   (:ai-texture-type-displacement . :displacement)
-		   (:ai-texture-type-lightmap . :lightmap)
-		   (:ai-texture-type-reflection . :reflection)
-		   (:ai-texture-type-unknown . :unknown))))
+                   (:ai-texture-type-diffuse . :diffuse)
+                   (:ai-texture-type-specular . :specular)
+                   (:ai-texture-type-ambient . :ambient)
+                   (:ai-texture-type-emissive . :emissive)
+                   (:ai-texture-type-height . :height)
+                   (:ai-texture-type-normals . :normals)
+                   (:ai-texture-type-shininess . :shininess)
+                   (:ai-texture-type-opacity . :opacity)
+                   (:ai-texture-type-displacement . :displacement)
+                   (:ai-texture-type-lightmap . :lightmap)
+                   (:ai-texture-type-reflection . :reflection)
+                   (:ai-texture-type-unknown . :unknown))))
     (or (cdr (assoc name mapping))
-	(error "Assimp texture type ~s not found in lark's mapping" name))))
+        (error "Assimp texture type ~s not found in lark's mapping" name))))
 
 (defun a-mesh->vertex-gpu-array (a-mesh)
   (let ((positions (assimp:vertices a-mesh))
-	(normals (assimp:normals a-mesh))
-	(tangets (assimp:tangents a-mesh))
-	(uvs (a-mesh->uvs a-mesh)))
+        (normals (assimp:normals a-mesh))
+        (tangets (assimp:tangents a-mesh))
+        (uvs (a-mesh->uvs a-mesh)))
     (assert (= (length positions)
-	       (length normals)
-	       (length tangets)
-	       (length uvs)))
+               (length normals)
+               (length tangets)
+               (length uvs)))
     (cepl:make-gpu-array
      (map 'list #'list positions normals tangets uvs)
      :element-type 'vertex)))

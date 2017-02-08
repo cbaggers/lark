@@ -14,7 +14,7 @@
 (defun-g vert ((vert :vec3) &uniform (to-cam-space :mat4))
   (let ((pos (* to-cam-space (v! vert 1.0))))
     (values (s~ pos :xyww)
-	    vert)))
+            vert)))
 
 (defun-g frag ((tc :vec3) &uniform (tex :sampler-cube))
   (texture-lod tex (normalize tc) 0))
@@ -36,22 +36,22 @@
     (gl:depth-func :lequal)
     (using-camera camera
       (let* ((transform (m4:* (m4:translation (v! 0 0 0))
-			      (m4:rotation-x (+ (* 2 +pi+)
+                              (m4:rotation-x (+ (* 2 +pi+)
                                                 ;;(* (get-internal-real-time) 0.0005)
                                                 ))))
-	     (to-clip (cepl.space:get-transform
-		       (cepl.camera.base::base-camera-space camera)
-		       *clip-space*)))
-	;; (map-g #'skybox *skybox-stream*
-	;;        :tex (diffuse-sampler (light-probe render-state))
-	;;        :to-cam-space (m4:* to-clip transform))
+             (to-clip (cepl.space:get-transform
+                       (cepl.camera.base::base-camera-space camera)
+                       *clip-space*)))
         ;; (map-g #'skybox *skybox-stream*
-	;;        :tex (specular-sampler (light-probe render-state))
-	;;        :to-cam-space (m4:* to-clip transform))
-	(map-g #'skybox-rect *skybox-stream*
-	       :tex *catwalk*
-	       :to-cam-space (m4:* to-clip transform))
-	))
+        ;;        :tex (diffuse-sampler (light-probe render-state))
+        ;;        :to-cam-space (m4:* to-clip transform))
+        ;; (map-g #'skybox *skybox-stream*
+        ;;        :tex (specular-sampler (light-probe render-state))
+        ;;        :to-cam-space (m4:* to-clip transform))
+        (map-g #'skybox-rect *skybox-stream*
+               :tex *catwalk*
+               :to-cam-space (m4:* to-clip transform))
+        ))
     (gl:depth-func :less)))
 
 (defun make-cubemap-tex (&rest paths)
@@ -63,21 +63,21 @@
 
 (defun init-sky-data ()
   (let* ((bx (dendrite.primitives:cube-data
-	      :size 2s0 :normals nil :tex-coords nil))
+              :size 2s0 :normals nil :tex-coords nil))
          (data (make-gpu-array (first bx) :element-type :vec3))
          (ind (make-gpu-array
-	       (dendrite.primitives:swap-winding-order (second bx))
-	       :element-type :ushort)))
+               (dendrite.primitives:swap-winding-order (second bx))
+               :element-type :ushort)))
     (setf *skybox-stream*
-	  (make-buffer-stream data :index-array ind :retain-arrays t)))
+          (make-buffer-stream data :index-array ind :retain-arrays t)))
   (setf *sky-cube-sampler*
-	(sample
-	 (make-cubemap-tex
-	  "./sky/default-tex/left.png"
-	  "./sky/default-tex/right.png"
-	  "./sky/default-tex/up.png"
-	  "./sky/default-tex/down.png"
-	  "./sky/default-tex/front.png"
-	  "./sky/default-tex/back.png"))))
+        (sample
+         (make-cubemap-tex
+          "./sky/default-tex/left.png"
+          "./sky/default-tex/right.png"
+          "./sky/default-tex/up.png"
+          "./sky/default-tex/down.png"
+          "./sky/default-tex/front.png"
+          "./sky/default-tex/back.png"))))
 
 (push #'init-sky-data *on-engine-init*)

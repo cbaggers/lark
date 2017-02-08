@@ -19,11 +19,11 @@
   (let* (;; both
          (world-pos (s~ (texture pos-sampler tc) :xyz))
          (normal (s~ (texture normal-sampler tc) :xyz))
-	 (albedo (s~ (texture albedo-sampler tc) :xyz))
-	 (view-dir (normalize (- world-pos)))
+         (albedo (s~ (texture albedo-sampler tc) :xyz))
+         (view-dir (normalize (- world-pos)))
          (material (texture material-sampler tc))
          (metallic (x material))
-	 (roughness (y material))
+         (roughness (y material))
          ;; punctual light
          (light-dir (normalize (- light-pos world-pos))))
     ;;
@@ -93,7 +93,7 @@
 
       ;; populate the gbuffer
       (map nil λ(render-thing (update-thing _) camera render-state)
-      	   (things *game-state*))
+           (things *game-state*))
 
       ;; draw & light
       (using-camera camera
@@ -106,8 +106,10 @@
                ;;:irradiance-cube (specular-sampler light-probe)
                :irradiance-cube (diffuse-sampler light-probe)
                :dfg-lut (sampler dfg)
-      	       :depth (depth-sampler gbuffer)
-               :light-pos (v! 0 1000 -0)))
+               :depth (depth-sampler gbuffer)
+               :light-pos (v! 0 1000 -0))
+        ;;(nineveh:draw-tex (diffuse-sampler light-probe))
+        )
 
       (render-sky camera render-state)
       (swap))))
