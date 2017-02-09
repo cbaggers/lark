@@ -32,7 +32,7 @@
   (let* ((normal r)   ;; ← this is why we lose the
          (view-dir r) ;; ← stretched reflections right?
          (prefiltered-color (v3! 0))
-         (num-samples (uint 1024))
+         (num-samples 1024) ;; should be (uint 1024) fix bug in old glsl
          (total-weight 0s0))
     (for (i 0) (< i num-samples) (setf i (+ 1 i))
          (let* ((xi (hammersley-get-sample i num-samples))
@@ -83,23 +83,21 @@
 
 (defun-g ibl-diffuse-filter-env-map ((normal :vec3) (roughness :float)
                                      (env-map :sampler-2d))
-  (let* ((up-vector (if (< (abs (z normal)) 0.999)
-                        (v! 0 0 1)
-                        (v! 1 0 0)))
+  (let* ((up-vector (v! 0 1 0))
          (tangent-x (normalize (cross up-vector normal)))
-         (tangent-y (cross normal tangent-x))
+         (tangent-y (normalize (cross normal tangent-x)))
          (accum-col (v3! 0))
-         (num-samples (uint 1024)))
+         (num-samples 1024)
+         (mat (m3:from-columns tangent-x tangent-y normal)))
     (for (i 0) (< i num-samples) (setf i (+ 1 i))
          (let* ((ham-dir (hammersley-hemisphere-uniform i num-samples))
-                (sample-dir (+ (* tangent-x (x ham-dir))
-                               (* tangent-y (y ham-dir))
-                               (* normal (z ham-dir))))
+                (sample-dir (* mat ham-dir))
                 (col (s~ (sample-equirectangular-tex env-map sample-dir)
-                         :xyz)))
+                         :xyz))
+                ;;(col sample-dir)
+                )
            (setf accum-col (+ accum-col col))))
-    (v! (/ (* accum-col (v3! +pi+))
-           (* 10 num-samples))
+    (v! (/ accum-col num-samples)
         1)))
 
 (defun-g ibl-diffuse-envmap ((tc :vec2) &uniform (env-map :sampler-2d)
@@ -197,9 +195,10 @@
                          (v3! (* f90 (y dfg-terms)))
                          albedo)
                       :xyz))
-         (specular (* diffuse (approximate-specular-ibl specular-cube dfg-lut
-                                                        f0 roughness normal
-                                                        view-dir dfg-terms))))
+         (spec-approx (approximate-specular-ibl specular-cube dfg-lut
+                                                f0 roughness normal
+                                                view-dir dfg-terms))
+         (specular (* diffuse spec-approx)))
     (mix (* diffuse irradiance)
          specular
          metallic)))

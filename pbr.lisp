@@ -48,7 +48,7 @@
            ;; combine
            (final (+ plight ibl)))
       ;;
-      (tone-map-uncharted2 ibl 2s0 0.4))))
+      (tone-map-uncharted2 final 4s0 1.0))))
 
 (def-g-> light-the-scene-pass ()
   (pass-through-vert g-pt)
@@ -78,7 +78,7 @@
                     :env-map *catwalk*
                     :roughness 1s0)
 
-        ;; ;; specular ggx
+        ;; specular ggx
         (loop :for fbo :in (specular-fbos light-probe) :for i :from 0 :do
            (clear-fbo fbo)
            (let* ((step (/ 1 +ibl-mipmap-count+))
@@ -108,7 +108,7 @@
                :dfg-lut (sampler dfg)
                :depth (depth-sampler gbuffer)
                :light-pos (v! 0 1000 -0))
-        ;;(nineveh:draw-tex (diffuse-sampler light-probe))
+        (nineveh:draw-tex (diffuse-sampler light-probe))
         )
 
       (render-sky camera render-state)
