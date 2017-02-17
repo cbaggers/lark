@@ -191,8 +191,8 @@
            )
          (f90 (saturate (* 50s0 (dot f0 (v3! 0.33)))) ;;0.04
            )
-         (diffuse (s~ (+ (* f0 (x dfg-terms))
-                         (v3! (* f90 (y dfg-terms)))
+         (diffuse (s~ (* (+ (* f0 (x dfg-terms))
+                            (v3! (* f90 (y dfg-terms))))
                          albedo)
                       :xyz))
          (spec-approx (approximate-specular-ibl specular-cube dfg-lut

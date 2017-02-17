@@ -44,7 +44,7 @@
                                    metallic))
            ;; ibl
            (ibl (calc-ibl dfg-lut specular-cube irradiance-map n·v normal
-                          view-dir albedo metallic (- 1 roughness)))
+                          view-dir albedo metallic roughness))
            ;; combine
            (final (+ plight ibl)))
       ;;
