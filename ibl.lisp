@@ -187,8 +187,8 @@
          (irradiance (s~ (sample-equirectangular-tex irradiance-map normal)
                          :xyz))
          (f0 (v3! f0))
-         (diffuse (s~ (+ (* f0 (x dfg-terms))
-                         (v3! (* f90 (y dfg-terms)))
+         (diffuse (s~ (* (+ (* f0 (x dfg-terms))
+                            (v3! (* f90 (y dfg-terms))))
                          albedo)
                       :xyz))
          (specular (* (approximate-specular-ibl specular-cube dfg-lut
