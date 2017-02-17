@@ -12,7 +12,11 @@
     (setf *catwalk*
           (sample
            (load-hdr-2d
-            (path "media/Factory_Catwalk/Factory_Catwalk_2k.hdr" t))))
+            (path "media/pisa/pisa.hdr" t))))
+    (setf *convolved-env*
+          (sample
+           (load-hdr-2d
+            (path "media/pisa/pisa_diffuse.hdr" t))))
     (setf *game-state*
           (make-game-state
            :things (list (make-sphere-thing

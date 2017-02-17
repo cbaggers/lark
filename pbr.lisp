@@ -10,7 +10,7 @@
                                (normal-sampler :sampler-2d)
                                (material-sampler :sampler-2d)
                                (specular-cube :sampler-cube)
-                               (irradiance-cube :sampler-cube)
+                               (irradiance-map :sampler-2d)
                                (dfg-lut :sampler-2d)
                                (depth :sampler-2d)
                                (light-pos :vec3))
@@ -43,12 +43,12 @@
                                    roughness
                                    metallic))
            ;; ibl
-           (ibl (calc-ibl dfg-lut specular-cube irradiance-cube n·v normal
-                          view-dir albedo metallic roughness))
+           (ibl (calc-ibl dfg-lut specular-cube irradiance-map n·v normal
+                          view-dir albedo metallic (- 1 roughness)))
            ;; combine
            (final (+ plight ibl)))
       ;;
-      (tone-map-uncharted2 final 4s0 1.0))))
+      (tone-map-uncharted2 final 1s0 1.0))))
 
 (def-g-> light-the-scene-pass ()
   (pass-through-vert g-pt)
@@ -71,18 +71,11 @@
         (clear-fbo (fbo dfg))
         (map-g-into (fbo dfg) #'compute-dfg-lut-pass *quad-stream*)
 
-        ;; diffuse irradiance map
-        (clear-fbo (diffuse-fbo light-probe))
-        (map-g-into (diffuse-fbo light-probe)
-                    #'ibl-diffuse-pass *quad-stream*
-                    :env-map *catwalk*
-                    :roughness 1s0)
-
         ;; specular ggx
         (loop :for fbo :in (specular-fbos light-probe) :for i :from 0 :do
            (clear-fbo fbo)
            (let* ((step (/ 1 +ibl-mipmap-count+))
-                  (roughness (+ step (* i step 1s0))))
+                  (roughness (* i step)))
              (print (list i (cepl.types::%fbo-id fbo) roughness))
              (map-g-into fbo #'iblggx-convolve-pass *quad-stream*
                          :env-map *catwalk*
@@ -103,12 +96,11 @@
                :normal-sampler (norm-sampler gbuffer)
                :material-sampler (mat-sampler gbuffer)
                :specular-cube (specular-sampler light-probe)
-               ;;:irradiance-cube (specular-sampler light-probe)
-               :irradiance-cube (diffuse-sampler light-probe)
+               :irradiance-map *convolved-env*
                :dfg-lut (sampler dfg)
                :depth (depth-sampler gbuffer)
                :light-pos (v! 0 1000 -0))
-        (nineveh:draw-tex (diffuse-sampler light-probe))
+        ;; (nineveh:draw-tex (diffuse-sampler light-probe))
         )
 
       (render-sky camera render-state)

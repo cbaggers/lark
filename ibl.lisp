@@ -174,7 +174,7 @@
 
 (defun-g calc-ibl ((dfg-lut :sampler-2d)
                    (specular-cube :sampler-cube)
-                   (irradiance-cube :sampler-cube)
+                   (irradiance-map :sampler-2d)
                    (n·v :float)
                    (normal :vec3)
                    (view-dir :vec3)
@@ -182,7 +182,7 @@
                    (metallic :float)
                    (roughness :float))
   (let* ((dfg-terms (dfg-lookup dfg-lut roughness n·v)) ;; also named env-brdf
-         (irradiance (s~ (texture irradiance-cube normal)
+         (irradiance (s~ (sample-equirectangular-tex irradiance-map normal)
                          :xyz))
          ;; f0: specular reflectence at normal incidence
          ;; f90: stolen from frostbite paper, probably not correct here but

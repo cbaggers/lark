@@ -3,6 +3,7 @@
 (defvar *started* nil)
 (defvar *game-state* nil)
 (defvar *catwalk* nil)
+(defvar *convolved-env* nil)
 (defvar *render-state* nil)
 
 ;;----------------------------------------------------------------------
