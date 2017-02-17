@@ -80,7 +80,7 @@
 
      :specular-cube spec-cube
      :specular-fbos (make-fbos-for-each-mipmap-of-cube-texture spec-cube)
-     :specular-sampler (sample spec-cube))))
+     :specular-sampler (sample spec-cube :wrap :clamp-to-edge))))
 
 ;;----------------------------------------------------------------------
 

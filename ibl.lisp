@@ -180,25 +180,21 @@
                    (view-dir :vec3)
                    (albedo :vec3)
                    (metallic :float)
-                   (roughness :float))
+                   (roughness :float)
+                   (f0 :float)
+                   (f90 :float))
   (let* ((dfg-terms (dfg-lookup dfg-lut roughness n·v)) ;; also named env-brdf
          (irradiance (s~ (sample-equirectangular-tex irradiance-map normal)
                          :xyz))
-         ;; f0: specular reflectence at normal incidence
-         ;; f90: stolen from frostbite paper, probably not correct here but
-         ;;      will do for now
-         (f0 (mix (v3! 0.04) albedo metallic) ;;(v3! 0.04)
-           )
-         (f90 (saturate (* 50s0 (dot f0 (v3! 0.33)))) ;;0.04
-           )
+         (f0 (v3! f0))
          (diffuse (s~ (+ (* f0 (x dfg-terms))
                          (v3! (* f90 (y dfg-terms)))
                          albedo)
                       :xyz))
-         (spec-approx (approximate-specular-ibl specular-cube dfg-lut
+         (specular (* (approximate-specular-ibl specular-cube dfg-lut
                                                 f0 roughness normal
-                                                view-dir dfg-terms))
-         (specular (* diffuse spec-approx)))
+                                                view-dir dfg-terms)
+                      diffuse)))
     (mix (* diffuse irradiance)
          specular
          metallic)))

@@ -13,42 +13,30 @@
                                (irradiance-map :sampler-2d)
                                (dfg-lut :sampler-2d)
                                (depth :sampler-2d)
-                               (light-pos :vec3))
+                               (light-pos :vec3)
+                               (roughness :float)
+                               (metallic :float))
   ;;
   ;; Setup
-  (let* (;; both
+  (let* ((f0 0.75)
+         (f90 0.85)
          (world-pos (s~ (texture pos-sampler tc) :xyz))
          (normal (s~ (texture normal-sampler tc) :xyz))
-         (albedo (s~ (texture albedo-sampler tc) :xyz))
+         (albedo (v! 0.0 0.56 0.72))
          (view-dir (normalize (- world-pos)))
          (material (texture material-sampler tc))
-         (metallic (x material))
-         (roughness (y material))
-         ;; punctual light
-         (light-dir (normalize (- light-pos world-pos))))
+         (metallic 1)
+         (roughness (y material)))
     ;;
     (setf gl-frag-depth (x (texture depth tc)))
     ;;
-    (let* (;;
+    (let* (;; ibl
            (n·v (saturate (dot normal view-dir)))
-           ;; punctual
-           (half-vec (normalize (+ view-dir light-dir)))
-           (l·h (saturate (dot light-dir half-vec)))
-           (n·h (saturate (dot normal half-vec)))
-           (n·l (saturate (dot normal light-dir)))
-           (linear-roughness (* roughness roughness)) ;; perceptualy linear roughness (α)
-           (plight (punctual-light albedo n·v half-vec
-                                   l·h n·h n·l
-                                   linear-roughness
-                                   roughness
-                                   metallic))
-           ;; ibl
            (ibl (calc-ibl dfg-lut specular-cube irradiance-map n·v normal
-                          view-dir albedo metallic (- 1 roughness)))
-           ;; combine
-           (final (+ plight ibl)))
+                          view-dir albedo metallic roughness
+                          f0 f90)))
       ;;
-      (tone-map-uncharted2 final 1s0 1.0))))
+      (tone-map-linear ibl 1s0))))
 
 (def-g-> light-the-scene-pass ()
   (pass-through-vert g-pt)
@@ -76,7 +64,6 @@
            (clear-fbo fbo)
            (let* ((step (/ 1 +ibl-mipmap-count+))
                   (roughness (* i step)))
-             (print (list i (cepl.types::%fbo-id fbo) roughness))
              (map-g-into fbo #'iblggx-convolve-pass *quad-stream*
                          :env-map *catwalk*
                          :roughness roughness))))
@@ -85,8 +72,13 @@
       (clear-fbo (fbo gbuffer))
 
       ;; populate the gbuffer
-      (map nil λ(render-thing (update-thing _) camera render-state)
-           (things *game-state*))
+      (let ((thing (first (things *game-state*))))
+        (loop :for y :below 4 :do
+           (loop :for x :below 4 :do
+              (setf (pos thing) (v3:+ (v! -150 130 -300)
+                                      (v! (* x 100) (* y -90) 0)))
+              (render-thing (update-thing thing) camera render-state
+                            (/ (+ x (* 4 y)) 16)))))
 
       ;; draw & light
       (using-camera camera
@@ -99,8 +91,9 @@
                :irradiance-map *convolved-env*
                :dfg-lut (sampler dfg)
                :depth (depth-sampler gbuffer)
-               :light-pos (v! 0 1000 -0))
-        ;; (nineveh:draw-tex (diffuse-sampler light-probe))
+               :light-pos (v! 0 1000 -0)
+               :metallic (/ (+ 1 (sin (/ (now) 1500))) 2s0))
+        ;;(nineveh:draw-tex *convolved-env*)
         )
 
       (render-sky camera render-state)
