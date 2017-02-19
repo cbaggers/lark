@@ -76,7 +76,6 @@
            (clear-fbo fbo)
            (let* ((step (/ 1 +ibl-mipmap-count+))
                   (roughness (* i step)))
-             (print (list i (cepl.types::%fbo-id fbo) roughness))
              (map-g-into fbo #'iblggx-convolve-pass *quad-stream*
                          :env-map *catwalk*
                          :roughness roughness))))
