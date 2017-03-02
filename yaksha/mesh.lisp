@@ -43,16 +43,20 @@
 
 ;;----------------------------------------------------------------------
 
-(defun load-assimp-meshes (filename)
-  (let* ((scene (file->scene filename))
+(defvar *default-import-flags*
+  '(:ai-process-triangulate
+    :ai-process-flip-u-vs
+    :ai-process-calc-tangent-space))
+
+(defun load-assimp-meshes (filename &optional (flags *default-import-flags*))
+  (let* ((scene (file->scene filename flags))
          (meshes (assimp-scene->meshes scene filename)))
     meshes))
 
-(defun file->scene (filename)
-  (assimp:import-into-lisp
-   filename :processing-flags '(:ai-process-triangulate
-                                :ai-process-flip-u-vs
-                                :ai-process-calc-tangent-space)))
+(defun file->scene (filename &optional (flags *default-import-flags*))
+  (let ((flags (alexandria:ensure-list flags)))
+    (assimp:import-into-lisp
+     filename :processing-flags flags )))
 
 (defun assimp-scene->meshes (a-scene model-filename)
   (let ((materials (assimp:materials a-scene))

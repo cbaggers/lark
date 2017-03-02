@@ -17,7 +17,8 @@
 
 (defun load-thing (filepath base-tex-path normal-tex-path met-tex-path
                    rough-tex-path
-                   &key (pos (v! 0 0 -120)))
+                   &key (pos (v! 0 0 -120))
+                     (flags yaksha::*default-import-flags*))
   (let ((base (cepl.sdl2-image:load-image-to-texture
                base-tex-path :srgb8-alpha8 t t))
 
@@ -30,7 +31,7 @@
         (rough (cepl.sdl2-image:load-image-to-texture
                 rough-tex-path :rgba8 t t)))
     (make-thing :pos pos
-                :model (yaksha:load-model filepath)
+                :model (yaksha:load-model filepath flags)
                 :base-sampler
                 (sample base :minify-filter :linear-mipmap-linear)
                 :normal-sampler

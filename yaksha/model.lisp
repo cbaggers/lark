@@ -4,10 +4,10 @@
   filepath
   meshes)
 
-(defun load-model (filepath)
+(defun load-model (filepath &optional (flags *default-import-flags*))
   (make-model
    :filepath filepath
-   :meshes (load-assimp-meshes filepath)))
+   :meshes (load-assimp-meshes filepath flags)))
 
 (defun make-model-from-mesh (mesh)
   (make-model :filepath "n/a"
