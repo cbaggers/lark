@@ -12,37 +12,47 @@
     (setf *catwalk*
           (sample
            (load-hdr-2d
-            (path "media/pisa/pisa.hdr" t))))
+            (path "media/Ridgecrest_Road/Ridgecrest_Road_Ref.hdr" t))))
     (setf *convolved-env*
           (sample
            (load-hdr-2d
-            (path "media/pisa/pisa_diffuse.hdr" t))))
+            (path "media/Ridgecrest_Road/Ridgecrest_Road_Env.hdr" t))))
     (setf *game-state*
           (make-game-state
-           :things (list (make-sphere-thing
-                          (path "media/iron-rusted4/iron-rusted4-basecolor.png" t)
-                          (path "media/iron-rusted4/iron-rusted4-normal.png" t)
-                          (path "media/iron-rusted4/iron-rusted4-metalness.png" t)
-                          (path "media/iron-rusted4/iron-rusted4-roughness.png" t)
-                          :pos (v! 0 30 -120))
-                         (make-sphere-thing
-                          (path "media/bamboo-wood-semigloss-1/bamboo-wood-semigloss-albedo.png" t)
-                          (path "media/bamboo-wood-semigloss-1/bamboo-wood-semigloss-normal.png" t)
-                          (path "media/bamboo-wood-semigloss-1/bamboo-wood-semigloss-metal.png" t)
-                          (path "media/bamboo-wood-semigloss-1/bamboo-wood-semigloss-roughness.png" t)
-                          :pos (v! 50 -30 -120))
+           :things (list ;; (make-sphere-thing
+                         ;;  (path "media/iron-rusted4/iron-rusted4-basecolor.png" t)
+                         ;;  (path "media/iron-rusted4/iron-rusted4-normal.png" t)
+                         ;;  (path "media/iron-rusted4/iron-rusted4-metalness.png" t)
+                         ;;  (path "media/iron-rusted4/iron-rusted4-roughness.png" t)
+                         ;;  :pos (v! 0 30 -120))
+                         ;; (make-sphere-thing
+                         ;;  (path "media/bamboo-wood-semigloss-1/bamboo-wood-semigloss-albedo.png" t)
+                         ;;  (path "media/bamboo-wood-semigloss-1/bamboo-wood-semigloss-normal.png" t)
+                         ;;  (path "media/bamboo-wood-semigloss-1/bamboo-wood-semigloss-metal.png" t)
+                         ;;  (path "media/bamboo-wood-semigloss-1/bamboo-wood-semigloss-roughness.png" t)
+                         ;;  :pos (v! 50 -30 -120))
                          ;; (make-sphere-thing
                          ;;  (path "media/Titanium-Scuffed_b/Titanium-Scuffed_basecolor.png" t)
                          ;;  (path "media/Titanium-Scuffed_b/Titanium-Scuffed_normal.png" t)
                          ;;  (path "media/Titanium-Scuffed_b/Titanium-Scuffed_metallic.png" t)
                          ;;  (path "media/Titanium-Scuffed_b/Titanium-Scuffed_roughness.png" t)
                          ;;  :pos (v! 30 30 -120))
-                         (make-sphere-thing
-                          (path "media/scuffed-plastic-1/scuffed-plastic-alb.png" t)
-                          (path "media/scuffed-plastic-1/scuffed-plastic-normal.png" t)
-                          (path "media/scuffed-plastic-1/scuffed-plastic-metal.png" t)
-                          (path "media/scuffed-plastic-1/scuffed-plastic-rough.png" t)
-                          :pos (v! -50 -30 -120)))))
+                         ;; (make-sphere-thing
+                         ;;  (path "media/scuffed-plastic-1/scuffed-plastic-alb.png" t)
+                         ;;  (path "media/scuffed-plastic-1/scuffed-plastic-normal.png" t)
+                         ;;  (path "media/scuffed-plastic-1/scuffed-plastic-metal.png" t)
+                         ;;  (path "media/scuffed-plastic-1/scuffed-plastic-rough.png" t)
+                         ;;  :pos (v! -50 -30 -120))
+                         (load-thing
+                          "/home/baggers/Downloads/Cerberus_by_Andrew_Maximov/Cerberus_LP.FBX"
+                          "/home/baggers/Downloads/Cerberus_by_Andrew_Maximov/Textures/Cerberus_A.tga"
+                          "/home/baggers/Downloads/Cerberus_by_Andrew_Maximov/Textures/Cerberus_N.tga"
+                          "/home/baggers/Downloads/Cerberus_by_Andrew_Maximov/Textures/Cerberus_M.tga"
+                          "/home/baggers/Downloads/Cerberus_by_Andrew_Maximov/Textures/Cerberus_R.tga"
+                          :pos (v! -50 -30 -120)
+                          :flags '(:ai-process-flip-u-vs
+                                   :ai-process-calc-tangent-space))
+                         )))
     (skitter:listen-to (lambda (x y z)
                          (declare (ignore z))
                          (window-size-callback x y))
@@ -86,24 +96,25 @@
                                    (> for-frames 0)
                                    t))
                 :do
-                (when for-frames (decf for-frames))
-                ;; update swank
-                (when (funcall swank-stepper)
-                  (swank.live::continuable (swank.live:update-swank)))
-                ;; update fps
-                (incf fps-frame-count)
-                (when (funcall fps-stepper)
-                  (setf *fps* fps-frame-count
-                        fps-frame-count 0))
-                ;; update event system
-                (swank.live::continuable (cepl:step-host))
-                ;; update temporal pool
-                (swank.live::continuable (ttm:update))
-                ;; run step function
-                (when (funcall main-loop-stepper)
-                  (swank.live::continuable (step-game)))
-                ;; run render pass
-                (swank.live::continuable (render *camera* *game-state*)))
+                (pile:with-tweak
+                  (when for-frames (decf for-frames))
+                  ;; update swank
+                  (when (funcall swank-stepper)
+                    (swank.live::continuable (swank.live:update-swank)))
+                  ;; update fps
+                  (incf fps-frame-count)
+                  (when (funcall fps-stepper)
+                    (setf *fps* fps-frame-count
+                          fps-frame-count 0))
+                  ;; update event system
+                  (swank.live::continuable (cepl:step-host))
+                  ;; update temporal pool
+                  (swank.live::continuable (ttm:update))
+                  ;; run step function
+                  (when (funcall main-loop-stepper)
+                    (swank.live::continuable (step-game)))
+                  ;; run render pass
+                  (swank.live::continuable (render *camera* *game-state*))))
           (setf *running* nil)
           (print "-shutting down-")))))
 

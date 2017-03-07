@@ -103,6 +103,4 @@
 (deftclass (render-state (:conc-name nil))
   (dfg (make-dfg-lookup))
   (light-probe (make-light-probe))
-  (gbuffer (make-gbuffer))
-  (env-map (sample (load-hdr-cross-texture
-                    (path "media/galileo_cross.hdr" t)))))
+  (gbuffer (make-gbuffer)))

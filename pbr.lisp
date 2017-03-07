@@ -99,11 +99,12 @@
                :dfg-lut (sampler dfg)
                :depth (depth-sampler gbuffer)
                :light-pos (v! 0 1000 -0))
-        ;; (nineveh:draw-tex (diffuse-sampler light-probe))
+        ;;(draw-tex (mat-sampler gbuffer))
         )
-
       (render-sky camera render-state)
-      (swap))))
+      (swap)
+      ;;(pile:tweak (pos-sampler gbuffer))
+      )))
 
 
 ;;----------------------------------------------------------------------
