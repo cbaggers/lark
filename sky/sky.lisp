@@ -30,29 +30,16 @@
   (vert :vec3)
   (sky-frag-rect :vec3))
 
-(defun render-sky (camera render-state)
-  (declare (ignorable render-state))
+(defun render-sky (camera)
   (when *sky-enabled*
-    (gl:depth-func :lequal)
-    (using-camera camera
-      (let* ((transform (m4:* (m4:translation (v! 0 0 0))
-                              (m4:rotation-x (+ (* 2 +pi+)
-                                                ;;(* (get-internal-real-time) 0.0005)
-                                                ))))
-             (to-clip (cepl.space:get-transform
-                       (cepl.camera.base::base-camera-space camera)
-                       *clip-space*)))
-        ;; (map-g #'skybox *skybox-stream*
-        ;;        :tex (diffuse-sampler (light-probe render-state))
-        ;;        :to-cam-space (m4:* to-clip transform))
-        ;; (map-g #'skybox *skybox-stream*
-        ;;        :tex (specular-sampler (light-probe render-state))
-        ;;        :to-cam-space (m4:* to-clip transform))
-        (map-g #'skybox-rect *skybox-stream*
-               :tex *catwalk*
-               :to-cam-space (m4:* to-clip transform))
-        ))
-    (gl:depth-func :less)))
+    (cepl-utils:with-setf (depth-test-function *cepl-context*) #'<=
+      (using-camera camera
+        (let* ((to-clip (cepl.space:get-transform
+                         (cepl.camera.base::base-camera-space camera)
+                         *clip-space*)))
+          (map-g #'skybox-rect *skybox-stream*
+                 :tex *catwalk*
+                 :to-cam-space to-clip))))))
 
 (defun make-cubemap-tex (&rest paths)
   (with-c-arrays (ca (mapcar (lambda (p)

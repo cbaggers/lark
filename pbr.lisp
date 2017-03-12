@@ -61,9 +61,6 @@
 (defun render (camera game-state)
   (let* ((render-state (render-state game-state)))
     (with-slots (dfg light-probe env-map gbuffer) render-state
-
-      (gl:clear :color-buffer-bit :depth-buffer-bit)
-
       (when *regen-light-probe*
         (setf *regen-light-probe* nil)
 
@@ -87,7 +84,7 @@
       (map nil λ(render-thing (update-thing _) camera render-state)
            (things *game-state*))
 
-      ;; draw & light
+      ;;draw & light
       (using-camera camera
         (map-g #'light-the-scene-pass *quad-stream*
                :pos-sampler (pos-sampler gbuffer)
@@ -98,13 +95,9 @@
                :irradiance-map *convolved-env*
                :dfg-lut (sampler dfg)
                :depth (depth-sampler gbuffer)
-               :light-pos (v! 0 1000 -0))
-        ;;(draw-tex (mat-sampler gbuffer))
-        )
-      (render-sky camera render-state)
-      (swap)
-      ;;(pile:tweak (pos-sampler gbuffer))
-      )))
+               :light-pos (v! 0 1000 -0)))
+      (render-sky camera)
+      (draw-tex (base-sampler gbuffer)))))
 
 
 ;;----------------------------------------------------------------------

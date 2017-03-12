@@ -28,6 +28,15 @@
   (mat-sampler (error "") :type sampler)
   (depth-sampler (error "") :type sampler))
 
+(defmethod free ((object gbuffer))
+  (free (fbo object))
+  (free (sampler-texture (pos-sampler object)))
+  (free (sampler-texture (norm-sampler object)))
+  (free (sampler-texture (base-sampler object)))
+  (free (sampler-texture (mat-sampler object)))
+  (free (sampler-texture (depth-sampler object)))
+  t)
+
 (defun make-gbuffer (&optional dimensions)
   ;; positions normals albedo specular
   (assert (listp dimensions))

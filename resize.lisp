@@ -9,6 +9,7 @@
   (let ((new-dimensions (list (down-to-nearest (v:x new-resolution) 8)
                               (down-to-nearest (v:y new-resolution) 8))))
     (setf (cepl.camera:camera-dimensions *camera*) new-dimensions)
+    (free (gbuffer (render-state *game-state*)))
     (setf (gbuffer (render-state *game-state*))
           (make-gbuffer new-dimensions))))
 
