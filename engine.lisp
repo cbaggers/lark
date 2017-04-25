@@ -98,11 +98,12 @@
                 (swank.live::continuable (ttm:update))
                 ;; run step function
                 (gl:clear :color-buffer-bit :depth-buffer-bit)
-                (pile:with-tweak
-                  (when (funcall main-loop-stepper)
-                    (swank.live::continuable (step-game)))
+                ;;(pile:with-tweak)
+				(when (funcall main-loop-stepper)
+				  (swank.live::continuable (step-game)))
                   ;; run render pass
-                  (swank.live::continuable (render *camera* *game-state*)))
+
+				(swank.live::continuable (render *camera* *game-state*))
                 (swap))
           (setf *running* nil)
           (print "-shutting down-")))))

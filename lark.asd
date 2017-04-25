@@ -11,7 +11,7 @@
                            #:temporal-functions #:dendrite #:disposable
                            #:structy-defclass #:swank.live
                            #:filmic-tone-mapping-operators #:dirt
-                           #:nineveh #:pile)
+                           #:nineveh)
   :components ((:file "package")
 
                ;; mesh and models
