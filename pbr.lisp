@@ -95,9 +95,10 @@
                :irradiance-map *convolved-env*
                :dfg-lut (sampler dfg)
                :depth (depth-sampler gbuffer)
-               :light-pos (v! 0 1000 -0)))
-      (render-sky camera)
-      (draw-tex (base-sampler gbuffer)))))
+               :light-pos (v! 0 1000 -0))
+        ;;(draw-tex (mat-sampler gbuffer))
+        )
+      (render-sky camera))))
 
 
 ;;----------------------------------------------------------------------

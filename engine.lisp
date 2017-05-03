@@ -36,7 +36,7 @@
 (defun start-engine ()
   (unless *started*
     (unless cepl.context:*gl-context*
-      (cepl::init 640 480 "Lark" t))
+      (cepl::repl 640 480))
     (setf *on-engine-init*
           (map nil #'funcall *on-engine-init*))
     (init-media)

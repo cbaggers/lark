@@ -21,6 +21,5 @@
                 :camera-viewport)
   (:use #:cl #:temporal-functions #:cepl #:named-readtables
         #:varjo-lang #:rtg-math :rtg-math.base-maths #:skitter.sdl2.keys
-        #:skitter.sdl2.mouse-buttons #:filmic-tone-mapping-operators
-        #:structy-defclass #:nineveh))
+        #:skitter.sdl2.mouse-buttons #:structy-defclass #:nineveh))
 ;; :near :far :perspective
