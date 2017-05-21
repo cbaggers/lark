@@ -1,7 +1,8 @@
 ;;;; package.lisp
 
 (defpackage #:yaksha
-  (:use #:cl #:named-readtables #:cepl-utils #:cepl #:rtg-math)
+  (:use #:cl #:named-readtables #:cepl-utils #:cepl #:rtg-math
+        #:cepl.spaces)
   (:shadow :texture :make-texture)
   (:export :vertex
            :mesh :make-mesh
@@ -21,5 +22,6 @@
                 :camera-viewport)
   (:use #:cl #:temporal-functions #:cepl #:named-readtables
         #:varjo-lang #:rtg-math :rtg-math.base-maths #:skitter.sdl2.keys
-        #:skitter.sdl2.mouse-buttons #:structy-defclass #:nineveh))
+        #:skitter.sdl2.mouse-buttons #:structy-defclass #:nineveh
+        #:cepl.spaces))
 ;; :near :far :perspective
