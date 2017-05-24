@@ -13,7 +13,7 @@
 (defparameter *quad-stream* nil)
 
 (defun init-misc-data ()
-  (setf *backup-tex* (cepl.sdl2-image:load-image-to-texture
+  (setf *backup-tex* (dirt:load-image-to-texture
                       (path "./suit/body_dif.png")))
   (setf *backup-tex-sampler* (sample *backup-tex*))
   (setf *quad*

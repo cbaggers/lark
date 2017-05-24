@@ -101,7 +101,7 @@
                                                     tex-filename)))
       (or (gethash tex-filename texture-cache)
           (let ((tex (make-y-texture
-                      :cepl-texture (cepl.sdl2-image:load-image-to-texture
+                      :cepl-texture (dirt:load-image-to-texture
                                      filepath)
                       :type (a-tex-type-name->lark-tex-type-name
                              a-tex-type))))

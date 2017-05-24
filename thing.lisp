@@ -19,16 +19,16 @@
                    rough-tex-path
                    &key (pos (v! 0 0 -120))
                      (flags yaksha::*default-import-flags*))
-  (let ((base (cepl.sdl2-image:load-image-to-texture
+  (let ((base (dirt:load-image-to-texture
                base-tex-path :srgb8-alpha8 t t))
 
-        (norm (cepl.sdl2-image:load-image-to-texture
+        (norm (dirt:load-image-to-texture
                normal-tex-path :rgba8 t t))
 
-        (met (cepl.sdl2-image:load-image-to-texture
+        (met (dirt:load-image-to-texture
               met-tex-path :rgba8 t t))
 
-        (rough (cepl.sdl2-image:load-image-to-texture
+        (rough (dirt:load-image-to-texture
                 rough-tex-path :rgba8 t t)))
     (make-thing :pos pos
                 :model (yaksha:load-model filepath flags)
