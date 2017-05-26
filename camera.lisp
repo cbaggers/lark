@@ -11,10 +11,10 @@
 (defmethod rot ((c cepl.camera:camera))
   (camera-rot c))
 
-(defmethod (setf pos) (vec4 (c cepl.camera:camera))
-  (assert (typep vec4 'rtg-math.types:vec4))
-  (setf (camera-pos c) vec4))
+(defmethod (setf pos) (vec3 (c cepl.camera:camera))
+  (assert (typep vec3 'rtg-math.types:vec3))
+  (setf (camera-pos c) vec3))
 
-(defmethod (setf rot) (vec4 (c cepl.camera:camera))
-  (assert (typep vec4 'rtg-math.types:vec4))
-  (setf (camera-rot c) vec4))
+(defmethod (setf rot) (vec3 (c cepl.camera:camera))
+  (assert (typep vec4 'rtg-math.types:vec3))
+  (setf (camera-rot c) vec3))
