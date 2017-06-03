@@ -6,10 +6,10 @@
   :license "GPLv3"
   #+asdf-unicode :encoding #+asdf-unicode :utf-8
   :serial t
-  :depends-on (#:cepl.sdl2 #:cepl.camera #:cepl.sdl2-image #:cepl.skitter.sdl2
-                           #:classimp #:fn #:named-readtables #:cl-fad
-                           #:temporal-functions #:dendrite #:disposable
-                           #:structy-defclass #:swank.live
+  :depends-on (#:cepl.sdl2 #:cepl.camera #:cepl.skitter.sdl2
+                           #:classimp-fallback-libs #:fn #:named-readtables
+                           #:cl-fad #:temporal-functions #:dendrite
+                           #:disposable #:structy-defclass #:swank.live
                            #:dirt #:nineveh)
   :components ((:file "package")
 

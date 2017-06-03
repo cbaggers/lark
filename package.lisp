@@ -21,7 +21,7 @@
                 :cam->clip :x->cam :using-camera :camera-pos :camera-rot
                 :camera-viewport)
   (:use #:cl #:temporal-functions #:cepl #:named-readtables
-        #:varjo-lang #:rtg-math :rtg-math.base-maths #:skitter.sdl2.keys
+        #:vari #:rtg-math :rtg-math.base-maths #:skitter.sdl2.keys
         #:skitter.sdl2.mouse-buttons #:structy-defclass #:nineveh
         #:cepl.spaces))
 ;; :near :far :perspective
