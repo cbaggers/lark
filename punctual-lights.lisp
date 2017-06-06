@@ -16,7 +16,7 @@
   (let ((f (fresnel-schlick f0 f90 l·h))
         (g (ggx-geom-smith-correlated n·v n·l roughness))
         (d (ggx-distribution n·h roughness)))
-    (/ (* d g f) +pi+)))
+    (/ (* f d g) +pi+)))
 
 (defun-g punctual-light ((albedo :vec3) (n·v :float) (half-vec :vec3)
                          (l·h :float) (n·h :float) (n·l :float)
