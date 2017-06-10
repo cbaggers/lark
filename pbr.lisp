@@ -46,13 +46,60 @@
            (ibl (calc-ibl dfg-lut specular-cube irradiance-map n·v normal
                           view-dir albedo metallic roughness))
            ;; combine
-           (final (+ plight ibl)))
+           (final ;;(+ plight ibl)
+            plight))
       ;;
-      (tone-map-uncharted2 final 1s0 1.0))))
+      (tone-map-reinhard final 1f0))))
+
+(defun-g pbr-basic ((tc :vec2) &uniform
+                    (cam-pos :vec3) ;; world-space
+                    (light-pos :vec3) ;; world-space
+                    (light-color :vec3)
+                    (albedo-sampler :sampler-2d)
+                    (pos-sampler :sampler-2d)
+                    (normal-sampler :sampler-2d)
+                    (material-sampler :sampler-2d)
+                    (specular-cube :sampler-cube)
+                    (irradiance-map :sampler-2d)
+                    (dfg-lut :sampler-2d)
+                    (depth :sampler-2d))
+  ;;
+  ;; Setup
+  (let* (;; unpack deferred
+         (world-pos (s~ (texture pos-sampler tc) :xyz))
+         (normal (s~ (texture normal-sampler tc) :xyz))
+         (albedo (s~ (texture albedo-sampler tc) :xyz))
+         (material (texture material-sampler tc))
+         (metallic (x material))
+         (roughness (y material)))
+    (setf gl-frag-depth (x (texture depth tc)))
+    ;;
+    (let* ((view-dir (normalize (- cam-pos world-pos)))
+           ;;
+           (f0 (simple-f0 albedo metallic))
+           ;;
+           (lₒ (cook-torrance-brdf world-pos
+                                   normal
+                                   albedo
+                                   metallic
+                                   roughness
+                                   f0
+                                   light-pos
+                                   light-color
+                                   view-dir))
+           ;; ibl
+           (n·v (saturate (dot normal view-dir)))
+           (ibl (calc-ibl dfg-lut specular-cube irradiance-map n·v normal
+                          view-dir albedo metallic roughness))
+           ;;
+           (ambient (* (v3! 0.03) albedo 0.0))
+           (final (+ ambient (* 0.4 ibl) lₒ)))
+      ;;
+      (tone-map-uncharted2 final 2f0 2f0))))
 
 (def-g-> light-the-scene-pass ()
   (pass-through-vert g-pt)
-  (light-the-scene-frag :vec2))
+  (pbr-basic :vec2))
 
 ;;----------------------------------------------------------------------
 
@@ -95,10 +142,11 @@
                :irradiance-map *convolved-env*
                :dfg-lut (sampler dfg)
                :depth (depth-sampler gbuffer)
-               :light-pos (v! 0 1000 -0))
-        ;;(draw-tex (mat-sampler gbuffer))
-        )
-      (render-sky camera))))
+               :light-pos (v! 20 100 -50)
+               :light-color (v! 1 1 1)))
+      (render-sky camera)
+      ;;(draw-tex *convolved-env* 1f0 t)
+      )))
 
 
 ;;----------------------------------------------------------------------

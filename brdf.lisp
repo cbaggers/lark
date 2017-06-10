@@ -2,10 +2,25 @@
 
 ;;----------------------------------------------------------------------
 
-(defun-g fresnel-schlick ((f0 :vec3) (f90 :float) (u :float))
+(defun-g fresnel-schlick ((f0 :vec3)
+                          (cosθ :float))
+  (+ f0
+     (* (- (v3! 1) f0)
+        (pow (- 1s0 cosθ) 5s0))))
+
+(defun-g fresnel-schlick ((f0 :vec3)
+                          (cosθ :float)
+                          (f90 :float))
+  "Calculates the fresnel aproximatation using the shlick method.
+
+   f0 is the base-reflectivity of the material. It is a vec3 as metalic objects
+   have tint.
+
+   The optional f90 argument is the amount of reflectance at 90 degrees. This
+   is technically 1f0 but can be changed if required by your use case."
   (+ f0
      (* (- (v3! f90) f0)
-        (pow (- 1s0 u) 5s0))))
+        (pow (- 1s0 cosθ) 5s0))))
 
 ;;----------------------------------------------------------------------
 

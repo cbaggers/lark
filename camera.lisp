@@ -16,5 +16,5 @@
   (setf (camera-pos c) vec3))
 
 (defmethod (setf rot) (vec3 (c cepl.camera:camera))
-  (assert (typep vec4 'rtg-math.types:vec3))
+  (assert (typep vec3 'rtg-math.types:vec3))
   (setf (camera-rot c) vec3))
