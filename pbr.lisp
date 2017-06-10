@@ -13,7 +13,8 @@
                                (irradiance-map :sampler-2d)
                                (dfg-lut :sampler-2d)
                                (depth :sampler-2d)
-                               (light-pos :vec3))
+                               (light-pos :vec3)
+                               (light-color :vec3))
   ;;
   ;; Setup
   (let* (;; both
@@ -44,12 +45,12 @@
                                    metallic))
            ;; ibl
            (ibl (calc-ibl dfg-lut specular-cube irradiance-map n·v normal
-                          view-dir albedo metallic roughness))
+                          view-dir albedo metallic roughness half-vec))
            ;; combine
-           (final ;;(+ plight ibl)
-            plight))
+           (final (+ plight
+                     ibl)))
       ;;
-      (tone-map-reinhard final 1f0))))
+      (tone-map-uncharted2 final 1f0 1f0))))
 
 (defun-g pbr-basic ((tc :vec2) &uniform
                     (cam-pos :vec3) ;; world-space
@@ -89,21 +90,27 @@
                                    view-dir))
            ;; ibl
            (n·v (saturate (dot normal view-dir)))
-           (ibl (calc-ibl dfg-lut specular-cube irradiance-map n·v normal
-                          view-dir albedo metallic roughness))
+           (ibl (calc-ibl-logl dfg-lut specular-cube irradiance-map n·v normal
+                               view-dir albedo metallic roughness))
            ;;
            (ambient (* (v3! 0.03) albedo 0.0))
-           (final (+ ambient (* 0.4 ibl) lₒ)))
+           (final (+ ambient lₒ)))
       ;;
-      (tone-map-uncharted2 final 2f0 2f0))))
+      (tone-map-uncharted2 final 1f0 1f0)
+      (tone-map-uncharted2 ibl 1f0 1f0)
+      )))
 
 (def-g-> light-the-scene-pass ()
   (pass-through-vert g-pt)
-  (pbr-basic :vec2))
+  (light-the-scene-frag :vec2))
+
+;; (def-g-> light-the-scene-pass ()
+;;   (pass-through-vert g-pt)
+;;   (pbr-basic :vec2))
 
 ;;----------------------------------------------------------------------
 
-(defvar *regen-light-probe* nil)
+(setf *regen-light-probe* t)
 
 (defun render (camera game-state)
   (let* ((render-state (render-state game-state)))
@@ -118,8 +125,7 @@
         ;; specular ggx
         (loop :for fbo :in (specular-fbos light-probe) :for i :from 0 :do
            (clear-fbo fbo)
-           (let* ((step (/ 1 +ibl-mipmap-count+))
-                  (roughness (* i step)))
+           (let* ((roughness (/ (float i 0f0) (- +ibl-mipmap-count+ 1))))
              (map-g-into fbo #'iblggx-convolve-pass *quad-stream*
                          :env-map *catwalk*
                          :roughness roughness))))
@@ -142,10 +148,10 @@
                :irradiance-map *convolved-env*
                :dfg-lut (sampler dfg)
                :depth (depth-sampler gbuffer)
-               :light-pos (v! 20 100 -50)
-               :light-color (v! 1 1 1)))
+               :light-pos (v! -40 100 -50)
+               :light-color (v! 6000 6000 10000)))
       (render-sky camera)
-      ;;(draw-tex *convolved-env* 1f0 t)
+      ;;(draw-tex (sampler dfg) 1f0 nil) ;; this has bugs
       )))
 
 

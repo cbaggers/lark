@@ -89,7 +89,7 @@
 
      :specular-cube spec-cube
      :specular-fbos (make-fbos-for-each-mipmap-of-cube-texture spec-cube)
-     :specular-sampler (sample spec-cube))))
+     :specular-sampler (sample spec-cube :wrap :clamp-to-edge))))
 
 ;;----------------------------------------------------------------------
 
@@ -98,14 +98,14 @@
   tex
   sampler)
 
-(defun make-dfg-lookup (&optional (dimensions '(128 128)))
+(defun make-dfg-lookup (&optional (dimensions '(512 512)))
   (let ((dfg-tex (make-texture nil :dimensions dimensions
                                :element-type :rgb16f)))
     ;; apparently this could be r16g16f (rg16f?) ↑↑
     (%make-dfg-lookup
      :fbo (make-fbo `(0 ,dfg-tex) `(:d :dimensions ,dimensions))
      :tex dfg-tex
-     :sampler (sample dfg-tex))))
+     :sampler (sample dfg-tex :wrap :clamp-to-edge))))
 
 ;;----------------------------------------------------------------------
 

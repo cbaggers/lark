@@ -37,6 +37,9 @@
         (let* ((to-clip (cepl.spaces:get-transform
                          (cepl.camera.base::base-camera-space camera)
                          *clip-space*)))
+          ;; (map-g #'skybox *skybox-stream*
+          ;;        :tex (specular-sampler (light-probe (render-state *game-state*)))
+          ;;        :to-cam-space to-clip)
           (map-g #'skybox-rect *skybox-stream*
                  :tex *catwalk*
                  :to-cam-space to-clip))))))

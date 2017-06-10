@@ -5,7 +5,7 @@
 (defun-g fresnel-schlick ((f0 :vec3)
                           (cosθ :float))
   (+ f0
-     (* (- (v3! 1) f0)
+     (* (- (v3! 1f0) f0)
         (pow (- 1s0 cosθ) 5s0))))
 
 (defun-g fresnel-schlick ((f0 :vec3)
@@ -20,6 +20,21 @@
    is technically 1f0 but can be changed if required by your use case."
   (+ f0
      (* (- (v3! f90) f0)
+        (pow (- 1s0 cosθ) 5s0))))
+
+;; vec3 fresnelSchlickRoughness(float cosTheta, vec3 F0, float roughness)
+;; {
+;;     return F0 +
+;;            (max(vec3(1.0 - roughness), F0) - F0) *
+;;             pow(1.0 - cosTheta, 5.0);
+;; }
+
+(defun-g fresnel-schlick-roughness ((f0 :vec3)
+                                    (cosθ :float)
+                                    (roughness :float))
+  (+ f0
+     (* (- (max (v3! (- 1f0 roughness)) f0)
+           f0)
         (pow (- 1s0 cosθ) 5s0))))
 
 ;;----------------------------------------------------------------------

@@ -53,8 +53,7 @@
          (half-vec (normalize (+ view-dir normalized-light-dir)))
          ;;
          (distance (length light-dir))
-         (attenuation (* (/ 1f0 distance)
-                         10))
+         (attenuation (inverse-square distance))
          (radiance (* light-color attenuation))
          ;;
          (h·n (max (dot half-vec normal) 0f0))
@@ -72,7 +71,7 @@
                     h·n
                     l·n
                     n·v
-                    roughness))
+                    (α-remap-direct-light roughness)))
 
          ;;
          (specular-component fresnel) ;; ks
