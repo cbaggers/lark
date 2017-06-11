@@ -25,13 +25,19 @@
                         (path "media/bamboo-wood-semigloss-1/bamboo-wood-semigloss-normal.png" t)
                         (path "media/bamboo-wood-semigloss-1/bamboo-wood-semigloss-metal.png" t)
                         (path "media/bamboo-wood-semigloss-1/bamboo-wood-semigloss-roughness.png" t)
-                        :pos (v! 50 -30 -120))
+                        :pos (v! 80 -30 -120))
                        (make-sphere-thing
                         (path "media/scuffed-plastic-1/scuffed-plastic-alb.png" t)
                         (path "media/scuffed-plastic-1/scuffed-plastic-normal.png" t)
                         (path "media/scuffed-plastic-1/scuffed-plastic-metal.png" t)
                         (path "media/scuffed-plastic-1/scuffed-plastic-rough.png" t)
-                        :pos (v! -50 -30 -120))))))
+                        :pos (v! -80 -30 -120))
+                       (make-sphere-thing
+                        (path "./media/brick/blocksrough_basecolor.png" t)
+                        (path "./media/brick/blocksrough_normal.png" t)
+                        (path "./media/brick/blocksrough_metallic.png" t)
+                        (path "./media/brick/blocksrough_roughness.png" t)
+                        :pos (v! 0 -50 -120))))))
 
 (defun start-engine ()
   (unless *started*
@@ -39,6 +45,7 @@
       (cepl::repl 640 480))
     (setf *on-engine-init*
           (map nil #'funcall *on-engine-init*))
+    (gl:enable :texture-cube-map-seamless)
     (init-media)
     (skitter:listen-to (lambda (x y z)
                          (declare (ignore z))

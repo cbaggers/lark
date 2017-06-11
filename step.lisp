@@ -22,7 +22,8 @@
                             (v! (* 2 (cos time))
                                 (sin time)
                                 (sin time)))))
-        (let ((v (v2:/s (mouse-pos) 100s0)))
-          (setf (rot thing) (q:from-mat3
-                             (m3:rotation-from-euler
-                              (v! (y v) 0s0 (x v)))))))))
+        (when (skitter:mouse-down-p mouse.left)
+          (let ((v (v2:/s (mouse-pos) 100s0)))
+            (setf (rot thing) (q:from-mat3
+                               (m3:rotation-from-euler
+                                (v! (y v) 0s0 (x v))))))))))

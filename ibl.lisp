@@ -40,19 +40,20 @@
                                    (env-map :sampler-2d))
   (let* ((normal sample-dir)   ;; ← this is why we lose the
          (view-dir sample-dir) ;; ← stretched reflections.
+         (prefiltered-color (v3! 0))
          (num-samples (uint 1024))
-         (total-weight 0s0)
-         (prefiltered-color (v3! 0)))
-    (for (i (uint 0)) (< i num-samples) (setf i (+ 1 i))
+         (total-weight 0s0))
+
+    (for (i (uint 0)) (< i num-samples) (++ i)
          (let* ((xi (hammersley-get-sample i num-samples))
-                (h (importance-sample-ggx xi roughness normal))
-                (l (normalize
-                    (- (* 2 (dot view-dir h) h)
-                       view-dir)))
-                (n·l (saturate (dot normal l))))
+                (half-vec (importance-sample-ggx xi roughness normal))
+                (light-dir (normalize
+                            (- (* 2 (dot view-dir half-vec) half-vec)
+                               view-dir)))
+                (n·l (saturate (dot normal light-dir))))
            (when (> n·l 0s0)
              (incf prefiltered-color
-                   (* (s~ (sample-equirectangular-tex env-map l) :xyz)
+                   (* (s~ (sample-equirectangular-tex env-map light-dir) :xyz)
                       n·l))
              (incf total-weight n·l))))
     (v! (/ prefiltered-color total-weight) 1f0)))
@@ -161,10 +162,10 @@
 ;;----------------------------------------------------------------------
 
 (defun-g select-ld-mipmap ((roughness :float))
-  (mix (float 0) (- (float +ibl-mipmap-count+) 1) roughness))
+  (* (float (- +ibl-mipmap-count+ 1)) roughness))
 
 (defun-g dfg-lookup ((dfg-lut :sampler-2d) (roughness :float) (n·v :float))
-  (s~ (texture dfg-lut (v! roughness n·v)) :xy))
+  (s~ (texture dfg-lut (v! n·v roughness)) :xy))
 
 (defun-g approximate-specular-ibl ((specular-cube :sampler-cube)
                                    (dfg-lut :sampler-2d)
@@ -193,16 +194,13 @@
                    (metallic :float)
                    (roughness :float)
                    (half-vec :vec3))
-  (let* ((env-brdf (dfg-lookup dfg-lut roughness n·v)) ;; also named env-brdf
+  (let* ((env-brdf (dfg-lookup dfg-lut roughness n·v))
          (irradiance (s~ (sample-equirectangular-tex irradiance-map normal)
                          :xyz))
-         ;; f0: specular reflectence at normal incidence
          ;; f90: stolen from frostbite paper, probably not correct here but
          ;;      will do for now
-         (f0 (mix (v3! 0.04) albedo metallic) ;;(v3! 0.04)
-           )
-         (f90 (saturate (* 50s0 (dot f0 (v3! 0.33)))) ;;0.04
-           )
+         (f0 (simple-f0 albedo metallic))
+         (f90 (saturate (* 50s0 (dot f0 (v3! 0.33)))))
          (fresnel (fresnel-schlick f0 (saturate (dot normal half-vec))))
          (diffuse (s~ (* (+ (* f0 (x env-brdf))
                             (v3! (* f90 (y env-brdf))))
@@ -223,29 +221,38 @@
 (defun-g calc-ibl-logl ((dfg-lut :sampler-2d)
                         (prefiltered-env-map :sampler-cube)
                         (irradiance-map :sampler-2d)
-                        (n·v :float)
                         (normal :vec3)
                         (view-dir :vec3)
                         (albedo :vec3)
                         (metallic :float)
-                        (roughness :float))
-  (let* (
+                        (roughness :float)
+                        (f0 :vec3))
+  (let* ((n·v (saturate (dot normal view-dir)))
+         (reflect-dir (reflect (- view-dir) normal))
          ;;
-         (f0 (simple-f0  albedo metallic))
+         (env-brdf (dfg-lookup dfg-lut roughness n·v))
+         (irradiance (s~ (sample-equirectangular-tex irradiance-map normal)
+                         :xyz))
+         (prefiltered-color (s~ (texture-lod prefiltered-env-map
+                                             reflect-dir
+                                             (select-ld-mipmap roughness))
+                                :xyz))
+         ;;
          (specular-component (fresnel-schlick-roughness
                               f0
                               (saturate (dot normal view-dir))
                               roughness))
          ;;
-         (diffuse-component (- (v3! 1f0) specular-component))
-         (irradiance (s~ (sample-equirectangular-tex irradiance-map normal)
-                         :xyz))
+         (diffuse-component (* (- (v3! 1f0) specular-component) ;; kd
+                               (- 1f0 metallic))) ;; ← metals have no diffuse
          (diffuse (* irradiance albedo))
-         (ambient (* diffuse diffuse-component))
          ;;
-         (specular (v! 0 0 0))
-         )
-    ambient
-    specular))
+         (specular (* prefiltered-color (+ (* specular-component (x env-brdf))
+                                           (v3! (y env-brdf)))))
+         (ao 1f0)
+         (ambient (* (+ (* diffuse diffuse-component)
+                        specular)
+                     ao)))
+    ambient))
 
 ;;----------------------------------------------------------------------

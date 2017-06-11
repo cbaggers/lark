@@ -34,7 +34,7 @@
          (ts-norm (- (* (s~ (texture norm-tex uv) :xyz) 2) (v3! 1)))
          (wnormal (normalize (* btn-mat ts-norm))))
     (values world-pos
-            wnormal
+            wnormal ;;misc
             (s~ (texture base-tex uv) :xyz)
             ;;(nineveh::mipmap-level->grey base-tex uv)
             (v! met rough 0))))

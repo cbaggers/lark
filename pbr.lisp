@@ -4,54 +4,6 @@
 ;;----------------------------------------------------------------------
 ;; render with ibl
 
-(defun-g light-the-scene-frag ((tc :vec2) &uniform
-                               (albedo-sampler :sampler-2d)
-                               (pos-sampler :sampler-2d)
-                               (normal-sampler :sampler-2d)
-                               (material-sampler :sampler-2d)
-                               (specular-cube :sampler-cube)
-                               (irradiance-map :sampler-2d)
-                               (dfg-lut :sampler-2d)
-                               (depth :sampler-2d)
-                               (light-pos :vec3)
-                               (light-color :vec3))
-  ;;
-  ;; Setup
-  (let* (;; both
-         (world-pos (s~ (texture pos-sampler tc) :xyz))
-         (normal (s~ (texture normal-sampler tc) :xyz))
-         (albedo (s~ (texture albedo-sampler tc) :xyz))
-         (view-dir (normalize (- world-pos)))
-         (material (texture material-sampler tc))
-         (metallic (x material))
-         (roughness (y material))
-         ;; punctual light
-         (light-dir (normalize (- light-pos world-pos))))
-    ;;
-    (setf gl-frag-depth (x (texture depth tc)))
-    ;;
-    (let* (;;
-           (n·v (saturate (dot normal view-dir)))
-           ;; punctual
-           (half-vec (normalize (+ view-dir light-dir)))
-           (l·h (saturate (dot light-dir half-vec)))
-           (n·h (saturate (dot normal half-vec)))
-           (n·l (saturate (dot normal light-dir)))
-           (linear-roughness (* roughness roughness)) ;; perceptualy linear roughness (α)
-           (plight (punctual-light albedo n·v half-vec
-                                   l·h n·h n·l
-                                   linear-roughness
-                                   roughness
-                                   metallic))
-           ;; ibl
-           (ibl (calc-ibl dfg-lut specular-cube irradiance-map n·v normal
-                          view-dir albedo metallic roughness half-vec))
-           ;; combine
-           (final (+ plight
-                     ibl)))
-      ;;
-      (tone-map-uncharted2 final 1f0 1f0))))
-
 (defun-g pbr-basic ((tc :vec2) &uniform
                     (cam-pos :vec3) ;; world-space
                     (light-pos :vec3) ;; world-space
@@ -89,24 +41,18 @@
                                    light-color
                                    view-dir))
            ;; ibl
-           (n·v (saturate (dot normal view-dir)))
-           (ibl (calc-ibl-logl dfg-lut specular-cube irradiance-map n·v normal
-                               view-dir albedo metallic roughness))
+           (ibl (calc-ibl-logl dfg-lut specular-cube irradiance-map normal
+                               view-dir albedo metallic roughness f0))
            ;;
-           (ambient (* (v3! 0.03) albedo 0.0))
-           (final (+ ambient lₒ)))
+           (final (+ ibl
+                     lₒ
+                     )))
       ;;
-      (tone-map-uncharted2 final 1f0 1f0)
-      (tone-map-uncharted2 ibl 1f0 1f0)
-      )))
+      (tone-map-reinhard final 0.5f0))))
 
 (def-g-> light-the-scene-pass ()
   (pass-through-vert g-pt)
-  (light-the-scene-frag :vec2))
-
-;; (def-g-> light-the-scene-pass ()
-;;   (pass-through-vert g-pt)
-;;   (pbr-basic :vec2))
+  (pbr-basic :vec2))
 
 ;;----------------------------------------------------------------------
 
@@ -148,10 +94,11 @@
                :irradiance-map *convolved-env*
                :dfg-lut (sampler dfg)
                :depth (depth-sampler gbuffer)
-               :light-pos (v! -40 100 -50)
-               :light-color (v! 6000 6000 10000)))
+               :light-pos (v! -80 300 -50)
+               :light-color (v! 20000 20000 30000)))
       (render-sky camera)
-      ;;(draw-tex (sampler dfg) 1f0 nil) ;; this has bugs
+      ;;(draw-tex *convolved-env* 1f0 nil) ;; this has bugs
+      ;;(draw-tex (sampler dfg) 1f0 nil)
       )))
 
 

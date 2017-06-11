@@ -14,7 +14,8 @@
 (defun-g specular-brdf ((n·v :float) (l·h :float) (n·h :float) (n·l :float)
                         (h :vec3) (f0 :vec3) (f90 :float) (roughness :float))
   (let ((f (fresnel-schlick f0 f90 l·h))
-        (g (ggx-geom-smith-correlated n·v n·l roughness))
+        (g ;;(ggx-geom-smith-correlated n·v n·l roughness)
+          (geometry-smith n·v n·l roughness))
         (d (ggx-distribution n·h roughness)))
     (/ (* d g f) +pi+)))
 
@@ -27,7 +28,8 @@
          (f90 (saturate (* 50s0 (dot f0 (v3! 0.33)))))
          (fr (specular-brdf n·v l·h n·h n·l half-vec f0 f90 roughness))
          (brdf (+ (* albedo fd) fr)))
-    (* brdf n·l
+    (* brdf
+       n·l
        ;;attenuation
        ;;light-color
        )))
@@ -56,29 +58,24 @@
          (attenuation (inverse-square distance))
          (radiance (* light-color attenuation))
          ;;
-         (h·n (max (dot half-vec normal) 0f0))
-         (h·v (max (dot half-vec view-dir) 0f0))
-         (l·n (max (dot normal normalized-light-dir) 0f0))
-         (n·v (max (dot normal view-dir) 0f0))
+         (h·n (saturate (dot half-vec normal)))
+         (h·v (saturate (dot half-vec view-dir)))
+         (l·n (saturate (dot normal normalized-light-dir)))
+         (n·v (saturate (dot normal view-dir)))
          ;;
          (fresnel (fresnel-schlick f0 h·v))
          ;;
          (diffuse (lambertian-diffuse albedo))
          (specular (cook-torrance-specular
-                    #'(distribution-ggx-trowbridge-reitz :float :float)
                     fresnel
-                    #'(geometry-smith :float :float :float)
                     h·n
                     l·n
                     n·v
-                    (α-remap-direct-light roughness)))
-
+                    roughness))
          ;;
          (specular-component fresnel) ;; ks
          (diffuse-component (* (- (v3! 1f0) specular-component) ;; kd
-                               (- 1f0 metallic)))
-         ;; metals have no diffuse ↑↑
-         ;;
+                               (- 1f0 metallic))) ;; ← metals have no diffuse
          (lₒ (* (+ (* diffuse diffuse-component) specular)
                 radiance ;; attenuated light color
                 l·n))) ;; incident angle
@@ -89,18 +86,16 @@
   (* albedo inv-pi-f))
 
 (defun-g cook-torrance-specular
-    ((distribution (function (:float :float) :float)) ;; d
-     (fresnel :vec3)
-     (geometry (function (:float :float :float) :float)) ;; g
+    ((fresnel :vec3)
      (h·n :float) ;; (saturate (dot normal half-vec))
      (l·n :float)
      (n·v :float)
-     (remapped-α :float) ;; k [α was a measure of roughness]
+     (α :float) ;; a measure of roughness
      )
   ;; fcook-torrance in the literature
-  (/ (* (funcall distribution h·n remapped-α)
-        fresnel
-        (funcall geometry n·v l·n remapped-α))
+  (/ (* (distribution-ggx-trowbridge-reitz h·n (* α α)) ;; d
+        fresnel ;; f
+        (geometry-smith n·v l·n (α-remap-direct-light α))) ;; g
      (+ (* 4 n·v l·n)
         ;; this ensures no divide by zero
         ;; ↓↓
