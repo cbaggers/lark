@@ -44,9 +44,7 @@
            (ibl (calc-ibl-logl dfg-lut specular-cube irradiance-map normal
                                view-dir albedo metallic roughness f0))
            ;;
-           (final (+ ibl
-                     lₒ
-                     )))
+           (final (+ ibl lₒ)))
       ;;
       (tone-map-reinhard final 0.5f0))))
 

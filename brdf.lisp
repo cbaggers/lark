@@ -53,17 +53,6 @@
 
 ;;----------------------------------------------------------------------
 
-(defun-g ggx-distribution ((n·h :float) (m :float))
-  (let* ((m² (* m m))
-         (f (+ 1.0 (* (- (* n·h m²)
-                         n·h)
-                      n·h)))
-         (f² (* f f)))
-    ;; we don't divide by +pi+ here as we will do that in the main brdf function
-    (/ m² f²)))
-
-;;----------------------------------------------------------------------
-
 (defun-g ggx-geom-smith-correlated ((n·v :float) (n·l :float) (α :float))
   (let* ((α² (* α α))
          (ggx-v-λ (* n·l (sqrt (+ (* (+ (* (- n·v) α²)

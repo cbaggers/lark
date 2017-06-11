@@ -2,43 +2,6 @@
 
 ;;----------------------------------------------------------------------
 
-(defun-g ggx-distribution ((n·h :float) (m :float))
-  (let* ((m² (* m m))
-         (f (+ 1.0 (* (- (* n·h m²)
-                         n·h)
-                      n·h)))
-         (f² (* f f)))
-    ;; we don't divide by +pi+ here as we will do that in the main brdf function
-    (/ m² f²)))
-
-(defun-g specular-brdf ((n·v :float) (l·h :float) (n·h :float) (n·l :float)
-                        (h :vec3) (f0 :vec3) (f90 :float) (roughness :float))
-  (let ((f (fresnel-schlick f0 f90 l·h))
-        (g ;;(ggx-geom-smith-correlated n·v n·l roughness)
-          (geometry-smith n·v n·l roughness))
-        (d (ggx-distribution n·h roughness)))
-    (/ (* d g f) +pi+)))
-
-(defun-g punctual-light ((albedo :vec3) (n·v :float) (half-vec :vec3)
-                         (l·h :float) (n·h :float) (n·l :float)
-                         (linear-roughness :float) (roughness :float)
-                         (metallic :float))
-  (let* ((fd (/ (disney-diffuse n·v n·l l·h linear-roughness) +pi+))
-         (f0 (mix (v3! 0.04) albedo metallic))
-         (f90 (saturate (* 50s0 (dot f0 (v3! 0.33)))))
-         (fr (specular-brdf n·v l·h n·h n·l half-vec f0 f90 roughness))
-         (brdf (+ (* albedo fd) fr)))
-    (* brdf
-       n·l
-       ;;attenuation
-       ;;light-color
-       )))
-
-;;----------------------------------------------------------------------
-
-(defun-g inverse-square ((x :float))
-  (/ 1f0 (* x x)))
-
 (defun-g cook-torrance-brdf ((world-pos :vec3)
                              (normal :vec3)
                              (albedo :vec3)
@@ -140,7 +103,6 @@
   (/ n·v
      (+ (* n·v (- 1f0 remapped-α)) remapped-α)))
 
-
 (defun-g geometry-smith ((n·v :float)
                          (l·n :float)
                          (remapped-α :float)) ;; k
@@ -155,21 +117,10 @@
          (ggx-1 (geometry-schlick-ggx l·n remapped-α)))
     (* ggx-0 ggx-1)))
 
-
-(defun-g geometry-smith ((n·v :float)
-                         (l·n :float)
-                         (α-remap-func (function (:float) :float))
-                         (α :float))  ;; a measure of roughness
-  "Geometry function
-   G in the DFG portion of the cook-torrance-specular BRDF
-
-   geometry-schlick-ggx does the real work here but we need to
-   take into account geometry obsctruction both from the light
-   to the surface and from the surface to the viewer"
-  (geometry-smith n·v l·n (funcall α-remap-func α)))
-
 (defun-g simple-f0 ((albedo :vec3)
                     (metallic :float))
   "One possible implementation of transforming f0 to allow the
-   same metric to work with metals & dielectrics"
+   same metric to work with metals & dielectrics
+
+   impl: `(mix (vec3 0.04) albedo metallic)`"
   (mix (vec3 0.04) albedo metallic))
