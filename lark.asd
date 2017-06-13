@@ -37,10 +37,9 @@
                (:file "pass-through")
                (:file "brdf")
                (:file "packing-pass")
-               (:file "ibl")
                (:file "punctual-lights")
+               (:file "ibl")
                (:file "pbr")
-
 
                ;; sky
                (:file "sky/sky")

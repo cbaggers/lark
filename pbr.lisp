@@ -41,12 +41,12 @@
                                    light-color
                                    view-dir))
            ;; ibl
-           (ibl (calc-ibl-logl dfg-lut specular-cube irradiance-map normal
-                               view-dir albedo metallic roughness f0))
+           (ibl (calc-ibl dfg-lut specular-cube irradiance-map normal
+                          view-dir albedo metallic roughness f0))
            ;;
            (final (+ ibl lₒ)))
       ;;
-      (tone-map-reinhard final 0.5f0))))
+      (tone-map-linear final 0.5f0))))
 
 (def-g-> light-the-scene-pass ()
   (pass-through-vert g-pt)
@@ -54,7 +54,7 @@
 
 ;;----------------------------------------------------------------------
 
-(setf *regen-light-probe* t)
+(defvar *regen-light-probe* t)
 
 (defun render (camera game-state)
   (let* ((render-state (render-state game-state)))

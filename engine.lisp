@@ -106,13 +106,35 @@
                 ;; run step function
                 (gl:clear :color-buffer-bit :depth-buffer-bit)
                 ;;(pile:with-tweak)
-				(when (funcall main-loop-stepper)
-				  (swank.live::continuable (step-game)))
-                  ;; run render pass
+                (when (funcall main-loop-stepper)
+                  (swank.live::continuable (step-game)))
+                ;; run render pass
 
-				(swank.live::continuable (render *camera* *game-state*))
+                (swank.live::continuable (render *camera* *game-state*))
                 (swap))
           (setf *running* nil)
           (print "-shutting down-")))))
 
 (defun stop () (setf *running* nil))
+
+
+;; (defvar *catwalk-1* *catwalk*)
+;; (defvar *convolved-env-1* *convolved-env*)
+
+;; (setf *catwalk*
+;;       (sample
+;;        (load-hdr-2d
+;;         (path "media/room/Alexs_Apt_2k.hdr" t))))
+;; (setf *convolved-env*
+;;       (sample
+;;        (load-hdr-2d
+;;         (path "media/room/Alexs_Apt_Env.hdr" t))))
+
+;; (defun flip ()
+;;   (let ((a *catwalk*)
+;;         (b *convolved-env*))
+;;     (setf *catwalk* *catwalk-1*
+;;           *convolved-env* *convolved-env-1*)
+;;     (setf *catwalk-1* a
+;;           *convolved-env-1* b)
+;;     (setf *regen-light-probe* t)))
