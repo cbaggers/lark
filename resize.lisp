@@ -14,6 +14,6 @@
           (make-gbuffer new-dimensions))))
 
 
-(defun window-size-callback (event timestamp)
+(defun window-size-callback (size)
   (declare (ignore timestamp))
-  (reshape (skitter:size-2d-vec event)))
+  (reshape size))

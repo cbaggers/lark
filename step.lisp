@@ -7,9 +7,9 @@
   (swap-mouse-move)
 
   ;; switch rotation mode
-  (when (skitter:key-down-p key.1)
+  (when (key-down-p key.1)
     (setf auto-rot t))
-  (when (skitter:key-down-p key.2)
+  (when (key-down-p key.2)
     (setf auto-rot nil))
 
   (map nil #'step-thing (things *game-state*)))
@@ -22,7 +22,7 @@
                             (v! (* 2 (cos time))
                                 (sin time)
                                 (sin time)))))
-        (when (skitter:mouse-down-p mouse.left)
+        (when (mouse-down-p mouse.left)
           (let ((v (v2:/s (mouse-pos) 100s0)))
             (setf (rot thing) (q:from-mat3
                                (m3:rotation-from-euler
