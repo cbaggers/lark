@@ -3,7 +3,7 @@
 ;;----------------------------------------------------------------------
 ;; Def
 
-(deftclass (thing (:conc-name nil))
+(deftclass thing
   model
   (model-space (make-space *world-space* (m4:identity)) :type vec-space)
   (offset (v! 0 40 0))
@@ -69,10 +69,10 @@
 
 (defun update-thing (thing)
   ;; populate space from transform
-  (setf (get-transform (model-space thing) *world-space*)
-        (m4:* (m4:translation (pos thing))
-              (q:to-mat4 (q:normalize (rot thing)))
-              ;; (m4:* (q:to-mat4 (q:normalize (rot thing)))
-              ;;         (m4:translation (offset thing)))
+  (setf (get-transform (thing-model-space thing) *world-space*)
+        (m4:* (m4:translation (thing-pos thing))
+              (q:to-mat4 (q:normalize (thing-rot thing)))
+              ;; (m4:* (q:to-mat4 (q:normalize (thing-rot thing)))
+              ;;         (m4:translation (thing-offset thing)))
               ))
   thing)

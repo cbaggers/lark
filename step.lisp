@@ -12,18 +12,18 @@
   (when (key-down-p key.2)
     (setf auto-rot nil))
 
-  (map nil #'step-thing (things *game-state*)))
+  (map nil #'step-thing (game-state-things *game-state*)))
 
 (defun step-thing (thing)
   (let ((time (/ (now) 10200)))
     (if auto-rot
-        (setf (rot thing) (q:from-mat3
-                           (m3:rotation-from-euler
-                            (v! (* 2 (cos time))
-                                (sin time)
-                                (sin time)))))
+        (setf (thing-rot thing) (q:from-mat3
+                                 (m3:rotation-from-euler
+                                  (v! (* 2 (cos time))
+                                      (sin time)
+                                      (sin time)))))
         (when (mouse-down-p mouse.left)
-          (let ((v (v2:/s (mouse-pos) 100s0)))
-            (setf (rot thing) (q:from-mat3
-                               (m3:rotation-from-euler
-                                (v! (y v) 0s0 (x v))))))))))
+          (let ((v (v2:/s (mouse-pos (mouse 0)) 100s0)))
+            (setf (thing-rot thing) (q:from-mat3
+                                     (m3:rotation-from-euler
+                                      (v! (y v) 0s0 (x v))))))))))

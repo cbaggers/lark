@@ -51,11 +51,11 @@
   (with-slots (gbuffer dfg)
       render-state
     (using-camera camera
-      (loop :for mesh :in (yaksha:model-meshes (model thing)) :do
-         (with-fbo-bound ((fbo gbuffer))
+      (loop :for mesh :in (yaksha:model-meshes (thing-model thing)) :do
+         (with-fbo-bound ((gbuffer-fbo gbuffer))
            (map-g #'pack-gbuffer-pass (yaksha:mesh-stream mesh)
-                  :model-space (model-space thing)
-                  :base-tex (base-sampler thing)
-                  :norm-tex (normal-sampler thing)
-                  :metallic-tex (metallic-sampler thing)
-                  :roughness-tex (roughness-sampler thing)))))))
+                  :model-space (thing-model-space thing)
+                  :base-tex (thing-base-sampler thing)
+                  :norm-tex (thing-normal-sampler thing)
+                  :metallic-tex (thing-metallic-sampler thing)
+                  :roughness-tex (thing-roughness-sampler thing)))))))

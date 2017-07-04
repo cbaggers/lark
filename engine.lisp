@@ -32,12 +32,13 @@
                         (path "media/scuffed-plastic-1/scuffed-plastic-metal.png" t)
                         (path "media/scuffed-plastic-1/scuffed-plastic-rough.png" t)
                         :pos (v! -80 -30 -120))
-                       (make-sphere-thing
-                        (path "./media/brick/blocksrough_basecolor.png" t)
-                        (path "./media/brick/blocksrough_normal.png" t)
-                        (path "./media/brick/blocksrough_metallic.png" t)
-                        (path "./media/brick/blocksrough_roughness.png" t)
-                        :pos (v! 0 -50 -120))))))
+                       ;; (make-sphere-thing
+                       ;;  (path "./media/brick/blocksrough_basecolor.png" t)
+                       ;;  (path "./media/brick/blocksrough_normal.png" t)
+                       ;;  (path "./media/brick/blocksrough_metallic.png" t)
+                       ;;  (path "./media/brick/blocksrough_roughness.png" t)
+                       ;;  :pos (v! 0 -50 -120))
+                       ))))
 
 (defun start-engine ()
   (unless *started*

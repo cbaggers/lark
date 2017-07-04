@@ -8,7 +8,7 @@
 
 ;;----------------------------------------------------------------------
 
-(deftclass (game-state (:conc-name nil))
+(deftclass game-state
   things
   (render-state (make-render-state)))
 
@@ -20,7 +20,7 @@
 ;; rgb8 base-color
 ;; rgb8 metallic, roughness, AO
 
-(deftclass (gbuffer (:constructor %make-gbuffer) (:conc-name nil))
+(deftclass (gbuffer (:constructor %make-gbuffer))
   (fbo (error "") :type fbo)
   (pos-sampler (error "") :type sampler)
   (norm-sampler (error "") :type sampler)
@@ -29,12 +29,12 @@
   (depth-sampler (error "") :type sampler))
 
 (defmethod free ((object gbuffer))
-  (free (fbo object))
-  (free (sampler-texture (pos-sampler object)))
-  (free (sampler-texture (norm-sampler object)))
-  (free (sampler-texture (base-sampler object)))
-  (free (sampler-texture (mat-sampler object)))
-  (free (sampler-texture (depth-sampler object)))
+  (free (gbuffer-fbo object))
+  (free (sampler-texture (gbuffer-pos-sampler object)))
+  (free (sampler-texture (gbuffer-norm-sampler object)))
+  (free (sampler-texture (gbuffer-base-sampler object)))
+  (free (sampler-texture (gbuffer-mat-sampler object)))
+  (free (sampler-texture (gbuffer-depth-sampler object)))
   t)
 
 (defun make-gbuffer (&optional dimensions)
@@ -55,18 +55,18 @@
      :depth-sampler (sample (attachment-tex fbo :d)))))
 
 (defmethod free ((gb gbuffer))
-  ;;(free (fbo gbuff))
-  (free (sampler-texture (pos-sampler gb)))
-  (free (sampler-texture (norm-sampler gb)))
-  (free (sampler-texture (base-sampler gb)))
-  (free (sampler-texture (mat-sampler gb)))
+  ;;(free (gbuffer-fbo gbuff))
+  (free (sampler-texture (gbuffer-pos-sampler gb)))
+  (free (sampler-texture (gbuffer-norm-sampler gb)))
+  (free (sampler-texture (gbuffer-base-sampler gb)))
+  (free (sampler-texture (gbuffer-mat-sampler gb)))
   gb)
 
 ;;----------------------------------------------------------------------
 
 (defconstant +ibl-mipmap-count+ 5)
 
-(deftclass (light-probe (:constructor %make-light-probe) (:conc-name nil))
+(deftclass (light-probe (:constructor %make-light-probe))
   diffuse-cube
   diffuse-fbo
   diffuse-sampler
@@ -93,7 +93,7 @@
 
 ;;----------------------------------------------------------------------
 
-(deftclass (dfg-lookup (:constructor %make-dfg-lookup) (:conc-name nil))
+(deftclass (dfg-lookup (:constructor %make-dfg-lookup))
   fbo
   tex
   sampler)
@@ -109,7 +109,7 @@
 
 ;;----------------------------------------------------------------------
 
-(deftclass (render-state (:conc-name nil))
+(deftclass render-state
   (dfg (make-dfg-lookup))
   (light-probe (make-light-probe))
   (gbuffer (make-gbuffer)))

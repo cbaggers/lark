@@ -57,17 +57,17 @@
 (defvar *regen-light-probe* t)
 
 (defun render (camera game-state)
-  (let* ((render-state (render-state game-state)))
+  (let* ((render-state (game-state-render-state game-state)))
     (with-slots (dfg light-probe env-map gbuffer) render-state
       (when *regen-light-probe*
         (setf *regen-light-probe* nil)
 
         ;; regen the dfg-lut (only ever needs to be done once.. but meh)
-        (clear-fbo (fbo dfg))
-        (map-g-into (fbo dfg) #'compute-dfg-lut-pass *quad-stream*)
+        (clear-fbo (dfg-lookup-fbo dfg))
+        (map-g-into (dfg-lookup-fbo dfg) #'compute-dfg-lut-pass *quad-stream*)
 
         ;; specular ggx
-        (loop :for fbo :in (specular-fbos light-probe) :for i :from 0 :do
+        (loop :for fbo :in (light-probe-specular-fbos light-probe) :for i :from 0 :do
            (clear-fbo fbo)
            (let* ((roughness (/ (float i 0f0) (- +ibl-mipmap-count+ 1))))
              (map-g-into fbo #'iblggx-convolve-pass *quad-stream*
@@ -75,28 +75,28 @@
                          :roughness roughness))))
 
       ;;
-      (clear-fbo (fbo gbuffer))
+      (clear-fbo (gbuffer-fbo gbuffer))
 
       ;; populate the gbuffer
       (map nil λ(render-thing (update-thing _) camera render-state)
-           (things *game-state*))
+           (game-state-things *game-state*))
 
       ;;draw & light
       (using-camera camera
         (map-g #'light-the-scene-pass *quad-stream*
-               :pos-sampler (pos-sampler gbuffer)
-               :albedo-sampler (base-sampler gbuffer)
-               :normal-sampler (norm-sampler gbuffer)
-               :material-sampler (mat-sampler gbuffer)
-               :specular-cube (specular-sampler light-probe)
+               :pos-sampler (gbuffer-pos-sampler gbuffer)
+               :albedo-sampler (gbuffer-base-sampler gbuffer)
+               :normal-sampler (gbuffer-norm-sampler gbuffer)
+               :material-sampler (gbuffer-mat-sampler gbuffer)
+               :specular-cube (light-probe-specular-sampler light-probe)
                :irradiance-map *convolved-env*
-               :dfg-lut (sampler dfg)
-               :depth (depth-sampler gbuffer)
+               :dfg-lut (dfg-lookup-sampler dfg)
+               :depth (gbuffer-depth-sampler gbuffer)
                :light-pos (v! -80 300 -50)
                :light-color (v! 20000 20000 30000)))
       (render-sky camera)
       ;;(draw-tex *convolved-env* 1f0 nil) ;; this has bugs
-      ;;(draw-tex (sampler dfg) 1f0 nil)
+      ;;(draw-tex (dfg-lookup-sampler dfg) 1f0 nil)
       )))
 
 
