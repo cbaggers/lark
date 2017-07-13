@@ -45,7 +45,7 @@
                  :to-cam-space to-clip))))))
 
 (defun make-cubemap-tex (&rest paths)
-  (with-c-arrays (ca (mapcar (lambda (p)
+  (with-c-arrays-freed (ca (mapcar (lambda (p)
                                (dirt:load-image-to-c-array
                                 (path p)))
                              paths))
