@@ -32,7 +32,7 @@
 
 (defun render-sky (camera)
   (when *sky-enabled*
-    (cepl-utils:with-setf (depth-test-function *cepl-context*) #'<=
+    (cepl-utils:with-setf (depth-test-function (cepl-context)) #'<=
       (using-camera camera
         (let* ((to-clip (cepl.spaces:get-transform
                          (cepl.camera.base::base-camera-space camera)
