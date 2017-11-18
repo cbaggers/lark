@@ -42,7 +42,7 @@
 
 (defun start-engine ()
   (unless *started*
-    (unless cepl.context:*gl-context*
+    (when (cepl.lifecycle:uninitialized-p)
       (cepl::repl 640 480))
     (setf *on-engine-init*
           (map nil #'funcall *on-engine-init*))
