@@ -14,5 +14,5 @@
   (v! 0 0 0 0))
 
 
-(def-g-> bah ()
+(defpipeline-g bah ()
   (tst-v :vec3) (tst-f :vec4))

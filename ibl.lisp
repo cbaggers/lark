@@ -67,7 +67,7 @@
             (iblggx-prefilter-env-map dir4 roughness env-map)
             (iblggx-prefilter-env-map dir5 roughness env-map))))
 
-(def-g-> iblggx-convolve-pass ()
+(defpipeline-g iblggx-convolve-pass ()
   (pass-through-vert g-pt)
   (iblggx-convolve-envmap :vec2))
 
@@ -108,7 +108,7 @@
 (defun-g compute-df-lut-frag ((tc :vec2))
   (integrate-brdf (x tc) (y tc)))
 
-(def-g-> compute-dfg-lut-pass ()
+(defpipeline-g compute-dfg-lut-pass ()
   (pass-through-vert g-pt)
   (compute-df-lut-frag :vec2))
 

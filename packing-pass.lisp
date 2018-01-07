@@ -40,7 +40,7 @@
             (v! met rough 0))))
 
 
-(def-g-> pack-gbuffer-pass ()
+(defpipeline-g pack-gbuffer-pass ()
   (pack-gbuffer-vert yaksha:vertex)
   (pack-gbuffer-frag :vec4 :mat3 :vec2 :vec3))
 

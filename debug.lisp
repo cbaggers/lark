@@ -5,7 +5,7 @@
 (defun-g debug-draw-sampler-frag ((tc :vec2) &uniform (s :sampler-2d))
   (texture s tc 0))
 
-(def-g-> debug-draw-sampler ()
+(defpipeline-g debug-draw-sampler ()
   (pass-through-vert g-pt)
   (debug-draw-sampler-frag :vec2))
 
@@ -17,7 +17,7 @@
 (defun-g green-frag ((tc :vec2) &uniform (s :sampler-2d))
   (v! 0 1 0 1))
 
-(def-g-> green-pass ()
+(defpipeline-g green-pass ()
   (pass-through-vert g-pt)
   (green-frag :vec2))
 

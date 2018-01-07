@@ -48,7 +48,7 @@
       ;;
       (tone-map-linear final 0.5f0))))
 
-(def-g-> light-the-scene-pass ()
+(defpipeline-g light-the-scene-pass ()
   (pass-through-vert g-pt)
   (pbr-basic :vec2))
 
