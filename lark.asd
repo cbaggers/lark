@@ -10,7 +10,7 @@
                            #:classimp-fallback-libs #:fn #:named-readtables
                            #:cl-fad #:temporal-functions #:dendrite
                            #:disposable #:structy-defclass #:swank.live
-                           #:dirt #:nineveh)
+                           #:dirt #:nineveh #:rtg-math.vari)
   :components ((:file "package")
 
                ;; mesh and models
